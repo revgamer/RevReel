@@ -1,3 +1,5 @@
+using RevReel.Services;
+
 namespace RevReel.Models
 {
     /// <summary>
@@ -13,6 +15,9 @@ namespace RevReel.Models
 
         /// <summary>Set only when <see cref="Kind"/> is Area.</summary>
         public AreaSelection? Area { get; init; }
+
+        /// <summary>Set only when <see cref="Kind"/> is Window.</summary>
+        public WindowSelection? Window { get; init; }
 
         /// <summary>Size of the video in pixels before any output-size preset. 0 if unknown.</summary>
         public int Width { get; init; }
@@ -30,7 +35,7 @@ namespace RevReel.Models
         /// used and <paramref name="note"/> explains why.
         /// </summary>
         public static RecordingTarget Resolve(AppSettings settings, AreaSelection? area,
-            IReadOnlyList<MonitorInfo> monitors, out string? note)
+            IReadOnlyList<MonitorInfo> monitors, out string? note, WindowSelection? window = null)
         {
             note = null;
 
@@ -41,7 +46,31 @@ namespace RevReel.Models
 
             MonitorInfo main = monitors.FirstOrDefault(m => m.IsPrimary) ?? monitors[0];
 
-            if (settings.SourceKind == RecordingSourceKind.Area)
+            if (settings.SourceKind == RecordingSourceKind.Window)
+            {
+                System.Drawing.Rectangle? bounds = window == null || !WindowService.IsStillOpen(window.Handle)
+                    ? null
+                    : WindowService.GetBounds(window.Handle);
+
+                if (window != null && bounds != null)
+                {
+                    return new RecordingTarget
+                    {
+                        Kind = RecordingSourceKind.Window,
+                        Monitors = monitors,
+                        Window = window,
+                        Width = bounds.Value.Width,
+                        Height = bounds.Value.Height,
+                        Description = $"the window \"{window.ShortTitle}\"",
+                        ToastMonitor = WindowService.MonitorOf(window.Handle, monitors) ?? main
+                    };
+                }
+
+                note = window == null
+                    ? "No window has been chosen yet, so the main monitor is being recorded. Click A Window to choose one."
+                    : "The window you chose is no longer open, so the main monitor is being recorded. Click A Window to choose again.";
+            }
+            else if (settings.SourceKind == RecordingSourceKind.Area)
             {
                 MonitorInfo? areaMonitor = area == null
                     ? null
@@ -62,7 +91,7 @@ namespace RevReel.Models
                 }
 
                 note = area == null
-                    ? "No area has been chosen yet, so the main monitor is being recorded. Use Option > Record source > Select an area."
+                    ? "No area has been chosen yet, so the main monitor is being recorded. Click Custom Area to choose one."
                     : "The monitor with your chosen area is not connected, so the main monitor is being recorded.";
             }
             else if (settings.SourceKind == RecordingSourceKind.AllMonitors && monitors.Count > 1)

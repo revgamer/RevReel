@@ -26,7 +26,7 @@ namespace RevReel.Services
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-        private sealed record Hotkey(int Id, uint Modifiers, uint VirtualKey, string Label, Action Pressed);
+        private sealed record Hotkey(int Id, uint Modifiers, uint VirtualKey, string Label, bool Always, Action Pressed);
 
         private readonly List<Hotkey> _hotkeys = new();
         private readonly HashSet<int> _active = new();
@@ -41,8 +41,12 @@ namespace RevReel.Services
             _source?.AddHook(WndProc);
         }
 
-        /// <summary>Defines a shortcut. It does nothing until <see cref="RegisterAll"/> is called.</summary>
-        public void Add(ModifierKeys modifiers, Key key, string label, Action pressed)
+        /// <summary>
+        /// Defines a shortcut. It does nothing until <see cref="RegisterAll"/> is called.
+        /// A shortcut marked <paramref name="always"/> stays on when <see cref="UnregisterAll"/> is called
+        /// (used for Record and Screenshot, which must work while idle).
+        /// </summary>
+        public void Add(ModifierKeys modifiers, Key key, string label, Action pressed, bool always = false)
         {
             uint mods = 0;
             if (modifiers.HasFlag(ModifierKeys.Alt)) mods |= MOD_ALT;
@@ -51,11 +55,14 @@ namespace RevReel.Services
             if (modifiers.HasFlag(ModifierKeys.Windows)) mods |= MOD_WIN;
 
             uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
-            _hotkeys.Add(new Hotkey(_hotkeys.Count + 1, mods, vk, label, pressed));
+            _hotkeys.Add(new Hotkey(_hotkeys.Count + 1, mods, vk, label, always, pressed));
         }
 
-        /// <summary>Switches the shortcuts on. Returns the labels of any that another program already uses.</summary>
-        public IReadOnlyList<string> RegisterAll()
+        /// <summary>
+        /// Switches the shortcuts on. Returns the labels of any that another program already uses.
+        /// With <paramref name="alwaysOnly"/> only the "always on" shortcuts are switched on (used at start-up).
+        /// </summary>
+        public IReadOnlyList<string> RegisterAll(bool alwaysOnly = false)
         {
             var failed = new List<string>();
             if (_hwnd == IntPtr.Zero)
@@ -65,7 +72,7 @@ namespace RevReel.Services
 
             foreach (Hotkey hotkey in _hotkeys)
             {
-                if (_active.Contains(hotkey.Id))
+                if (_active.Contains(hotkey.Id) || (alwaysOnly && !hotkey.Always))
                 {
                     continue;
                 }
@@ -83,15 +90,22 @@ namespace RevReel.Services
             return failed;
         }
 
-        /// <summary>Switches the shortcuts off, so other programs can use those keys again.</summary>
-        public void UnregisterAll()
-        {
-            foreach (int id in _active)
-            {
-                UnregisterHotKey(_hwnd, id);
-            }
+        /// <summary>Switches off the shortcuts that only matter while recording, so other programs can use those keys again.</summary>
+        public void UnregisterAll() => Unregister(includeAlways: false);
 
-            _active.Clear();
+        private void Unregister(bool includeAlways)
+        {
+            foreach (int id in _active.ToList())
+            {
+                Hotkey? hotkey = _hotkeys.FirstOrDefault(h => h.Id == id);
+                if (hotkey != null && hotkey.Always && !includeAlways)
+                {
+                    continue;
+                }
+
+                UnregisterHotKey(_hwnd, id);
+                _active.Remove(id);
+            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -112,7 +126,7 @@ namespace RevReel.Services
 
         public void Dispose()
         {
-            UnregisterAll();
+            Unregister(includeAlways: true);
             _source?.RemoveHook(WndProc);
             _source = null;
         }

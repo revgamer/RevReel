@@ -1,3 +1,4 @@
+using RevReel.Services;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -16,7 +17,6 @@ namespace RevReel.Views
         private const int WS_EX_TRANSPARENT = 0x00000020;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private const int WS_EX_NOACTIVATE = 0x08000000;
-        private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
         private const uint SWP_NOACTIVATE = 0x0010;
         private const int OutlineGap = 4; // pixels drawn outside the recorded area
 
@@ -28,8 +28,6 @@ namespace RevReel.Views
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        [DllImport("user32.dll")]
-        private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
@@ -49,7 +47,7 @@ namespace RevReel.Views
 
                 // Not in the video. Needs Windows 10 version 2004 or newer.
                 // Because the outline sits outside the recorded area, it is not in the video on older versions either.
-                SetWindowDisplayAffinity(handle, WDA_EXCLUDEFROMCAPTURE);
+                CaptureVisibility.ExcludeFromCapture(handle);
                 Place();
             };
             Loaded += (_, _) => Place();

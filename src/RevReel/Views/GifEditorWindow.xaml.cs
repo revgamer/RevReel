@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +21,8 @@ namespace RevReel.Views
         private const double SecondsBeforeBookmark = 5;
         private const double SecondsAfterBookmark = 3;
         private const double MaxLengthSeconds = 60;
+        private const int GifFramesPerSecond = 10;
+        private const int GifMaxWidth = (int)TextOverlayRenderer.ReferenceWidth; // GIFs are never wider than this
         private const double MinBoxSize = 32; // video pixels
 
         private sealed record BookmarkItem(string Text, TimeSpan Time);
@@ -162,7 +163,7 @@ namespace RevReel.Views
             PositionSlider.Minimum = 0;
             PositionSlider.Maximum = Math.Max(1, _video.Duration.TotalSeconds);
             PositionSlider.Value = 0;
-            PositionText.Text = FormatTime(TimeSpan.Zero);
+            PositionText.Text = TimeText.Format(TimeSpan.Zero);
             _updatingUi = false;
 
             _bookmarkSeconds = BookmarkStore.Load(path).Where(sec => sec <= _video.Duration.TotalSeconds).ToList();
@@ -184,7 +185,7 @@ namespace RevReel.Views
             TrimButton.IsEnabled = true;
             MakeButton.IsEnabled = true;
             UpdateTextButtons();
-            SetStatus($"Recording length {FormatTime(_video.Duration)}, picture size {_video.NativeWidth} x {_video.NativeHeight}. "
+            SetStatus($"Recording length {TimeText.Format(_video.Duration)}, picture size {_video.NativeWidth} x {_video.NativeHeight}. "
                       + "Press Play or use the timeline, choose a bookmark or type a start and end time, then click Make GIF.");
         }
 
@@ -334,7 +335,7 @@ namespace RevReel.Views
             UpdateTextTimes();
             _updatingUi = true;
             PositionSlider.Value = Math.Min(Math.Max(position.TotalSeconds, PositionSlider.Minimum), PositionSlider.Maximum);
-            PositionText.Text = FormatTime(position);
+            PositionText.Text = TimeText.Format(position);
             _updatingUi = false;
         }
 
@@ -363,7 +364,7 @@ namespace RevReel.Views
                 return;
             }
 
-            PositionText.Text = FormatTime(TimeSpan.FromSeconds(PositionSlider.Value));
+            PositionText.Text = TimeText.Format(TimeSpan.FromSeconds(PositionSlider.Value));
             _previewTime = TimeSpan.FromSeconds(PositionSlider.Value);
             UpdateTextTimes();
             _seekTimer.Stop();
@@ -403,7 +404,7 @@ namespace RevReel.Views
         {
             _bookmarkSeconds = _bookmarkSeconds.OrderBy(sec => sec).ToList();
             var items = _bookmarkSeconds
-                .Select((sec, i) => new BookmarkItem($"Bookmark {i + 1} - {FormatTime(TimeSpan.FromSeconds(sec))}", TimeSpan.FromSeconds(sec)))
+                .Select((sec, i) => new BookmarkItem($"Bookmark {i + 1} - {TimeText.Format(TimeSpan.FromSeconds(sec))}", TimeSpan.FromSeconds(sec)))
                 .ToList();
 
             _suppressBookmarkSelection = true;
@@ -435,7 +436,7 @@ namespace RevReel.Views
             _bookmarkSeconds.Add(at);
             bool saved = BookmarkStore.Save(_videoPath, _bookmarkSeconds);
             RefreshBookmarks(at);
-            SetStatus($"Bookmark added at {FormatTime(TimeSpan.FromSeconds(at))}" + (saved ? "." : ", but the bookmark file could not be saved."));
+            SetStatus($"Bookmark added at {TimeText.Format(TimeSpan.FromSeconds(at))}" + (saved ? "." : ", but the bookmark file could not be saved."));
         }
 
         private void RemoveBookmark_Click(object sender, RoutedEventArgs e)
@@ -461,8 +462,8 @@ namespace RevReel.Views
             _end = end > start ? end : start + TimeSpan.FromSeconds(1);
 
             _updatingUi = true;
-            StartBox.Text = FormatTime(_start);
-            EndBox.Text = FormatTime(_end);
+            StartBox.Text = TimeText.Format(_start);
+            EndBox.Text = TimeText.Format(_end);
             _updatingUi = false;
 
             UpdateTextTimes(); // animations of texts shown the whole time start at the GIF start
@@ -472,7 +473,7 @@ namespace RevReel.Views
         private void UpdateLengthStatus()
         {
             double length = (_end - _start).TotalSeconds;
-            int fps = SelectedTag(FpsBox, 10);
+            int fps = GifFramesPerSecond;
             string text = $"GIF length {length:0.0} seconds, about {(int)Math.Ceiling(length * fps)} frames.";
             if (length > 20)
             {
@@ -505,7 +506,7 @@ namespace RevReel.Views
                 return;
             }
 
-            if (!TryParseTime(StartBox.Text, out TimeSpan start) || !TryParseTime(EndBox.Text, out TimeSpan end))
+            if (!TimeText.TryParse(StartBox.Text, out TimeSpan start) || !TimeText.TryParse(EndBox.Text, out TimeSpan end))
             {
                 SetStatus("Type times as hours:minutes:seconds, for example 02:03:12 or 1:05 for one minute five seconds.");
                 return;
@@ -994,8 +995,8 @@ namespace RevReel.Views
 
             StopPlayback();
 
-            int fps = SelectedTag(FpsBox, 10);
-            int width = SelectedTag(WidthBox, 800);
+            int fps = GifFramesPerSecond;
+            int width = GifMaxWidth;
 
             Drawing.Rectangle? crop = null;
             if (_crop != null)
@@ -1135,52 +1136,7 @@ namespace RevReel.Views
 
         private void SetStatus(string text) => StatusText.Text = text;
 
-        private static int SelectedTag(ComboBox box, int fallback) =>
-            box.SelectedItem is ComboBoxItem { Tag: string tag } && int.TryParse(tag, out int value) ? value : fallback;
-
         private static TimeSpan Clamp(TimeSpan value, TimeSpan min, TimeSpan max) =>
             value < min ? min : value > max ? max : value;
-
-        /// <summary>For example 02:03:12.5</summary>
-        private static string FormatTime(TimeSpan t) =>
-            $"{(int)t.TotalHours:00}:{t.Minutes:00}:{t.Seconds:00}.{t.Milliseconds / 100}";
-
-        /// <summary>Accepts hours:minutes:seconds, minutes:seconds, or seconds. Seconds may have decimals.</summary>
-        private static bool TryParseTime(string text, out TimeSpan time)
-        {
-            time = TimeSpan.Zero;
-            string[] parts = text.Trim().Split(':');
-            if (parts.Length is < 1 or > 3)
-            {
-                return false;
-            }
-
-            double total = 0;
-            for (int i = 0; i < parts.Length; i++)
-            {
-                bool isLast = i == parts.Length - 1;
-                if (isLast)
-                {
-                    if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds) || seconds < 0)
-                    {
-                        return false;
-                    }
-
-                    total = total * 60 + seconds;
-                }
-                else
-                {
-                    if (!int.TryParse(parts[i], NumberStyles.None, CultureInfo.InvariantCulture, out int whole))
-                    {
-                        return false;
-                    }
-
-                    total = total * 60 + whole;
-                }
-            }
-
-            time = TimeSpan.FromSeconds(total);
-            return true;
-        }
     }
 }

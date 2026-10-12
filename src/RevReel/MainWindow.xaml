@@ -1,160 +1,353 @@
 <Window x:Class="RevReel.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RevReel" Width="460" Height="480"
-        ResizeMode="CanMinimize"
+        Title="RevReel" Width="600" SizeToContent="Height"
+        WindowStyle="None" ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}">
 
-    <DockPanel>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="44" ResizeBorderThickness="0" GlassFrameThickness="0"
+                      CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
-        <!-- Menu bar. Alt+F, Alt+O and Alt+H open the menus. -->
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem x:Name="MenuOpenLocation" Header="_Open save location"
-                          InputGestureText="Ctrl+O" Click="MenuOpenLocation_Click" />
-                <MenuItem x:Name="MenuPlayLast" Header="_Play last recording"
-                          IsEnabled="False" Click="MenuPlayLast_Click" />
-                <MenuItem x:Name="MenuShowLast" Header="_Show last recording in folder"
-                          IsEnabled="False" Click="OpenFolderButton_Click" />
-                <MenuItem x:Name="MenuBookmark" Header="Add _bookmark" InputGestureText="Ctrl+Alt+F8"
-                          IsEnabled="False" Click="MenuBookmark_Click" />
-                <MenuItem x:Name="MenuMakeGif" Header="Make _GIF from a recording..."
-                          Click="MakeGif_Click" />
-                <MenuItem x:Name="MenuReplay" Header="Save _replay GIF" IsEnabled="False">
-                    <MenuItem Header="Last _3 seconds" Tag="3" InputGestureText="Ctrl+Alt+F5" Click="MenuReplay_Click" />
-                    <MenuItem Header="Last _5 seconds" Tag="5" InputGestureText="Ctrl+Alt+F6" Click="MenuReplay_Click" />
-                    <MenuItem Header="Last _10 seconds" Tag="10" InputGestureText="Ctrl+Alt+F7" Click="MenuReplay_Click" />
-                </MenuItem>
-                <Separator />
-                <MenuItem Header="E_xit" InputGestureText="Alt+F4" Click="MenuExit_Click" />
-            </MenuItem>
+    <Window.Resources>
 
-            <MenuItem x:Name="MenuOption" Header="_Option" SubmenuOpened="MenuOption_SubmenuOpened">
-                <MenuItem x:Name="MenuSource" Header="Record _source" />
-                <MenuItem x:Name="MenuChangeFolder" Header="Change _save location..."
-                          Click="MenuChangeFolder_Click" />
-                <MenuItem x:Name="MenuFrameRate" Header="_Frame rate">
-                    <MenuItem Header="_30 frames per second" Tag="30" IsCheckable="True"
-                              Click="MenuFrameRate_Click" />
-                    <MenuItem Header="_60 frames per second" Tag="60" IsCheckable="True"
-                              Click="MenuFrameRate_Click" />
-                </MenuItem>
-                <MenuItem x:Name="MenuOutputSize" Header="_Output size">
-                    <MenuItem Header="_Automatic (same as the screen)" Tag="Automatic" IsCheckable="True"
-                              Click="MenuOutputSize_Click" />
-                    <MenuItem Header="_720p (1280 x 720)" Tag="Hd720" IsCheckable="True"
-                              Click="MenuOutputSize_Click" />
-                    <MenuItem Header="_1080p (1920 x 1080)" Tag="FullHd1080" IsCheckable="True"
-                              Click="MenuOutputSize_Click" />
-                    <MenuItem Header="1_440p (2560 x 1440)" Tag="Qhd1440" IsCheckable="True"
-                              Click="MenuOutputSize_Click" />
-                    <MenuItem Header="_4K (3840 x 2160)" Tag="Uhd2160" IsCheckable="True"
-                              Click="MenuOutputSize_Click" />
-                </MenuItem>
-                <MenuItem x:Name="MenuReplayEnabled" Header="Enable _replay GIFs" IsCheckable="True"
-                          Click="MenuReplayEnabled_Click" />
-                <Separator />
-                <MenuItem x:Name="MenuAlwaysOnTop" Header="Keep window on _top" IsCheckable="True"
-                          Click="MenuAlwaysOnTop_Click" />
-            </MenuItem>
+        <!-- Small buttons in the title bar (menu, minimise, close). -->
+        <Style x:Key="TitleButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-            <MenuItem Header="_Help">
-                <MenuItem Header="_About RevReel..." Click="MenuAbout_Click" />
-                <MenuItem Header="_Check for updates..." Click="MenuCheckUpdates_Click" />
-                <MenuItem Header="_Keyboard shortcuts" InputGestureText="F1" Click="MenuShortcuts_Click" />
-                <Separator />
-                <MenuItem Header="RevReel on _GitHub" Click="MenuGitHub_Click" />
-                <MenuItem Header="_Report a problem" Click="MenuReportProblem_Click" />
-            </MenuItem>
-        </Menu>
+        <Style x:Key="CloseTitleButton" TargetType="Button" BasedOn="{StaticResource TitleButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource RecordBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource RecordBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <!-- Update banner: shown only when a newer version has been found. -->
-        <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Visibility="Collapsed"
-                Background="{StaticResource AccentBrush}" Padding="14,8">
-            <DockPanel>
-                <Button Content="Dismiss" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
-                        Padding="10,4" Margin="8,0,0,0" Click="UpdateDismissButton_Click"
-                        AutomationProperties.Name="Dismiss the update notice" />
-                <Button Content="Download" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
-                        Padding="10,4" Click="UpdateDownloadButton_Click"
-                        AutomationProperties.Name="Open the download page" />
-                <TextBlock x:Name="UpdateBannerText" Foreground="White" FontSize="12"
-                           VerticalAlignment="Center" TextWrapping="Wrap"
-                           AutomationProperties.LiveSetting="Polite" />
-            </DockPanel>
-        </Border>
+        <!-- Big icon button (Record, Screenshot, GIF Maker). -->
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent"
+                                BorderThickness="2" CornerRadius="8" Padding="4,10,4,8">
+                            <ContentPresenter HorizontalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PanelBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource MutedTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <Grid Margin="24">
+        <!-- Same look for the three "what to record" buttons. The chosen one has an orange outline. -->
+        <Style x:Key="ToolRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent"
+                                BorderThickness="2" CornerRadius="8" Padding="4,10,4,8">
+                            <ContentPresenter HorizontalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PanelBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource MutedTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PanelBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="IconLabel" TargetType="AccessText">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="{StaticResource SecondaryBrush}" BorderThickness="1">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Title -->
-            <StackPanel Grid.Row="0">
-                <TextBlock Text="RevReel" FontSize="26" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" />
-                <TextBlock Text="by Rev Creative Developer" FontSize="11"
-                           Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0" />
-            </StackPanel>
-
-            <!-- State and timer. State is always written out in words, never colour only. -->
-            <Border Grid.Row="1" Margin="0,18,0,0" Padding="14,10" CornerRadius="8"
-                    Background="{StaticResource PanelBrush}">
-                <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse x:Name="IndicatorDot" Width="12" Height="12"
-                                 Fill="{StaticResource MutedTextBrush}" Margin="0,0,10,0" />
-                        <TextBlock x:Name="StateText" Text="Not recording" FontSize="14"
-                                   Foreground="{StaticResource TextBrush}"
-                                   AutomationProperties.Name="Recording state" />
-                    </StackPanel>
-                    <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="20" FontWeight="SemiBold"
-                               FontFamily="Consolas" HorizontalAlignment="Right"
-                               Foreground="{StaticResource TextBrush}"
+            <!-- Title bar: name, state and timer on the left; menu, minimise and close on the right. -->
+            <Grid Grid.Row="0" Height="44" Background="{StaticResource PanelBrush}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <TextBlock Text="RevReel" FontSize="16" FontWeight="Bold"
+                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                    <Ellipse x:Name="IndicatorDot" Width="10" Height="10" Margin="18,0,8,0"
+                             Fill="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="StateText" Text="Not recording" FontSize="12"
+                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
+                               AutomationProperties.Name="Recording state" />
+                    <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="13" FontWeight="SemiBold"
+                               FontFamily="Consolas" Margin="12,0,0,0"
+                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
                                AutomationProperties.Name="Elapsed time" />
-                </Grid>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="MenuButton" Content="&#xE700;" Style="{StaticResource TitleButton}"
+                            Click="MenuButton_Click"
+                            AutomationProperties.Name="Menu"
+                            AutomationProperties.HelpText="Opens the File, Option and Help menus.">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="MainMenu">
+                    <MenuItem Header="_File">
+                        <MenuItem Header="_Open save location"
+                                  InputGestureText="Ctrl+O" Click="MenuOpenLocation_Click" />
+                        <MenuItem x:Name="MenuPlayLast" Header="_Play last recording"
+                                  IsEnabled="False" Click="MenuPlayLast_Click" />
+                        <MenuItem x:Name="MenuShowLast" Header="_Show last recording in folder"
+                                  IsEnabled="False" Click="OpenFolderButton_Click" />
+                        <MenuItem x:Name="MenuBookmark" Header="Add _bookmark" InputGestureText="Ctrl+Alt+F8"
+                                  IsEnabled="False" Click="MenuBookmark_Click" />
+                        <MenuItem x:Name="MenuMakeGif" Header="Make _GIF from a recording..."
+                                  Click="MakeGif_Click" />
+                        <MenuItem x:Name="MenuReplay" Header="Save _replay GIF" IsEnabled="False">
+                            <MenuItem Header="Last _3 seconds" Tag="3" InputGestureText="Ctrl+Alt+F5" Click="MenuReplay_Click" />
+                            <MenuItem Header="Last _5 seconds" Tag="5" InputGestureText="Ctrl+Alt+F6" Click="MenuReplay_Click" />
+                            <MenuItem Header="Last _10 seconds" Tag="10" InputGestureText="Ctrl+Alt+F7" Click="MenuReplay_Click" />
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="E_xit" InputGestureText="Alt+F4" Click="MenuExit_Click" />
+                    </MenuItem>
+
+                    <MenuItem x:Name="MenuOption" Header="_Option" SubmenuOpened="MenuOption_SubmenuOpened">
+                        <MenuItem x:Name="MenuSource" Header="Record _source" />
+                        <MenuItem x:Name="MenuChangeFolder" Header="Change _save location..."
+                                  Click="MenuChangeFolder_Click" />
+                        <MenuItem x:Name="MenuFrameRate" Header="_Frame rate">
+                            <MenuItem Header="_30 frames per second" Tag="30" IsCheckable="True"
+                                      Click="MenuFrameRate_Click" />
+                            <MenuItem Header="_60 frames per second" Tag="60" IsCheckable="True"
+                                      Click="MenuFrameRate_Click" />
+                        </MenuItem>
+                        <MenuItem x:Name="MenuOutputSize" Header="_Output size">
+                            <MenuItem Header="_Automatic (same as the screen)" Tag="Automatic" IsCheckable="True"
+                                      Click="MenuOutputSize_Click" />
+                            <MenuItem Header="_720p (1280 x 720)" Tag="Hd720" IsCheckable="True"
+                                      Click="MenuOutputSize_Click" />
+                            <MenuItem Header="_1080p (1920 x 1080)" Tag="FullHd1080" IsCheckable="True"
+                                      Click="MenuOutputSize_Click" />
+                            <MenuItem Header="1_440p (2560 x 1440)" Tag="Qhd1440" IsCheckable="True"
+                                      Click="MenuOutputSize_Click" />
+                            <MenuItem Header="_4K (3840 x 2160)" Tag="Uhd2160" IsCheckable="True"
+                                      Click="MenuOutputSize_Click" />
+                        </MenuItem>
+                        <MenuItem x:Name="MenuReplayEnabled" Header="Enable _replay GIFs" IsCheckable="True"
+                                  Click="MenuReplayEnabled_Click" />
+                        <Separator />
+                        <MenuItem x:Name="MenuAlwaysOnTop" Header="Keep window on _top" IsCheckable="True"
+                                  Click="MenuAlwaysOnTop_Click" />
+                    </MenuItem>
+
+                    <MenuItem Header="_Help">
+                        <MenuItem Header="_About RevReel..." Click="MenuAbout_Click" />
+                        <MenuItem Header="_Check for updates..." Click="MenuCheckUpdates_Click" />
+                        <MenuItem Header="_Keyboard shortcuts" InputGestureText="F1" Click="MenuShortcuts_Click" />
+                        <Separator />
+                        <MenuItem Header="RevReel on _GitHub" Click="MenuGitHub_Click" />
+                        <MenuItem Header="_Report a problem" Click="MenuReportProblem_Click" />
+                    </MenuItem>
+        
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Content="&#xE921;" Style="{StaticResource TitleButton}" Click="MinimiseButton_Click"
+                            AutomationProperties.Name="Minimise" />
+                    <Button Content="&#xE8BB;" Style="{StaticResource CloseTitleButton}" Click="CloseButton_Click"
+                            AutomationProperties.Name="Close RevReel" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Update banner: shown only when a newer version has been found. -->
+            <Border x:Name="UpdateBanner" Grid.Row="1" Visibility="Collapsed"
+                    Background="{StaticResource AccentBrush}" Padding="14,8">
+                <DockPanel>
+                    <Button Content="Dismiss" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                            Padding="10,4" Margin="8,0,0,0" Click="UpdateDismissButton_Click"
+                            AutomationProperties.Name="Dismiss the update notice" />
+                    <Button Content="Download" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                            Padding="10,4" Click="UpdateDownloadButton_Click"
+                            AutomationProperties.Name="Open the download page" />
+                    <TextBlock x:Name="UpdateBannerText" Foreground="White" FontSize="12"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
             </Border>
 
-            <!-- Buttons. Alt+R, Alt+S and Alt+W work as keyboard shortcuts. -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
-                <Button x:Name="RecordButton" Content="_Record" Style="{StaticResource PrimaryButton}"
-                        Click="RecordButton_Click" AutomationProperties.Name="Start recording" />
-                <Button x:Name="StopButton" Content="_Stop" Style="{StaticResource SecondaryButton}"
-                        Margin="10,0,0,0" IsEnabled="False"
-                        Click="StopButton_Click" AutomationProperties.Name="Stop recording" />
-                <Button x:Name="OpenFolderButton" Content="Sho_w file" Style="{StaticResource SecondaryButton}"
-                        Margin="10,0,0,0" IsEnabled="False"
-                        Click="OpenFolderButton_Click" AutomationProperties.Name="Show last recording in folder" />
-            </StackPanel>
+            <!-- The six big buttons. Alt + the underlined letter works as a shortcut. -->
+            <UniformGrid Grid.Row="2" Columns="6" Margin="12,14,12,4">
 
-            <!-- What will be recorded, and the button to drag out a custom area on any monitor. -->
-            <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <Button x:Name="AreaButton" Content="Select _area..." Style="{StaticResource SecondaryButton}"
-                            Click="AreaButton_Click"
-                            AutomationProperties.Name="Select a custom area to record"
-                            AutomationProperties.HelpText="Drag a box on any monitor. RevReel records only that box." />
-                    <Button x:Name="MakeGifButton" Content="Make _GIF..." Style="{StaticResource SecondaryButton}"
-                            Margin="10,0,0,0" Click="MakeGif_Click"
-                            AutomationProperties.Name="Make a GIF from a recording"
-                            AutomationProperties.HelpText="Pick a bookmark, trim, crop and turn it into a GIF." />
-                </StackPanel>
-                <TextBlock x:Name="SourceText" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
-                           Foreground="{StaticResource TextBrush}"
-                           AutomationProperties.Name="What will be recorded" />
-            </StackPanel>
+                <RadioButton x:Name="WholeScreenRadio" GroupName="Mode" Style="{StaticResource ToolRadio}"
+                             Click="WholeScreen_Click"
+                             AutomationProperties.Name="Whole screen"
+                             AutomationProperties.HelpText="Record a whole monitor. If you have more than one monitor, you choose which.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Path Data="M3,5 H29 V22 H3 Z M11,27 H21 M16,22 V27" Stroke="#4DA3FF" StrokeThickness="2.2"
+                                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Canvas>
+                        <AccessText Text="_Whole Screen" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </RadioButton>
+
+                <RadioButton x:Name="WindowRadio" GroupName="Mode" Style="{StaticResource ToolRadio}"
+                             Click="Window_Click"
+                             AutomationProperties.Name="A window"
+                             AutomationProperties.HelpText="Record one program window. A list opens so you can choose it.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Path Data="M3,5 H29 V27 H3 Z M3,11 H29" Stroke="#B58CFF" StrokeThickness="2.2"
+                                  StrokeLineJoin="Round" />
+                        </Canvas>
+                        <AccessText Text="A Wi_ndow" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </RadioButton>
+
+                <RadioButton x:Name="AreaRadio" GroupName="Mode" Style="{StaticResource ToolRadio}"
+                             Click="Area_Click"
+                             AutomationProperties.Name="Custom area"
+                             AutomationProperties.HelpText="Record a box that you drag out on any monitor.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Rectangle Canvas.Left="3" Canvas.Top="5" Width="26" Height="22" Stroke="#2DD4BF"
+                                       StrokeThickness="2.2" StrokeDashArray="3 2" />
+                        </Canvas>
+                        <AccessText Text="Custom _Area" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </RadioButton>
+
+                <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="RecordButton_Click"
+                        AutomationProperties.Name="Start recording"
+                        AutomationProperties.HelpText="Starts recording. Press again to stop. Shortcut from any program: Control, Alt and F10.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Ellipse Canvas.Left="3" Canvas.Top="3" Width="26" Height="26" Stroke="#E5484D" StrokeThickness="2.2" />
+                            <Ellipse x:Name="RecordDot" Canvas.Left="9" Canvas.Top="9" Width="14" Height="14" Fill="#E5484D" />
+                            <Rectangle x:Name="StopSquare" Canvas.Left="10" Canvas.Top="10" Width="12" Height="12"
+                                       Fill="#E5484D" Visibility="Collapsed" />
+                        </Canvas>
+                        <AccessText x:Name="RecordLabel" Text="_Record" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolButton}" Click="ScreenshotButton_Click"
+                        AutomationProperties.Name="Screenshot"
+                        AutomationProperties.HelpText="Saves a picture of what would be recorded. Shortcut from any program: Control, Alt and F9.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Path Data="M3,10 H10 L12.5,6 H19.5 L22,10 H29 V26 H3 Z" Stroke="#4DA3FF" StrokeThickness="2.2"
+                                  StrokeLineJoin="Round" />
+                            <Ellipse Canvas.Left="11" Canvas.Top="12" Width="10" Height="10" Stroke="#4DA3FF" StrokeThickness="2.2" />
+                        </Canvas>
+                        <AccessText Text="S_creenshot" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="MakeGifButton" Style="{StaticResource ToolButton}" Click="MakeGif_Click"
+                        AutomationProperties.Name="GIF Maker"
+                        AutomationProperties.HelpText="Pick a recording, trim, crop, add text and turn it into a GIF.">
+                    <StackPanel>
+                        <Canvas Width="32" Height="32">
+                            <Border Canvas.Left="1" Canvas.Top="6" Width="30" Height="20" CornerRadius="5"
+                                    BorderBrush="#FF9F43" BorderThickness="2.2">
+                                <TextBlock Text="GIF" Foreground="#FF9F43" FontWeight="Bold" FontSize="12"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Canvas>
+                        <AccessText Text="_GIF Maker" Style="{StaticResource IconLabel}" />
+                    </StackPanel>
+                </Button>
+            </UniformGrid>
+
+            <!-- What will be recorded. -->
+            <TextBlock x:Name="SourceText" Grid.Row="3" Margin="16,10,16,0" FontSize="13"
+                       TextAlignment="Center" TextWrapping="Wrap"
+                       Foreground="{StaticResource TextBrush}"
+                       AutomationProperties.Name="What will be recorded"
+                       AutomationProperties.LiveSetting="Polite" />
 
             <!-- Status line: every message the app shows is written here. -->
-            <TextBlock x:Name="StatusText" Grid.Row="4" Margin="0,16,0,0" TextWrapping="Wrap"
-                       FontSize="12" Foreground="{StaticResource MutedTextBrush}"
-                       Text="Ready. Records the whole primary screen."
-                       AutomationProperties.Name="Status message"
-                       AutomationProperties.LiveSetting="Polite" />
+            <DockPanel Grid.Row="4" Margin="16,12,16,14">
+                <Button x:Name="OpenFolderButton" Content="Show fi_le" DockPanel.Dock="Right"
+                        Style="{StaticResource SecondaryButton}" Padding="12,5" Margin="12,0,0,0"
+                        IsEnabled="False" Click="OpenFolderButton_Click" VerticalAlignment="Center"
+                        AutomationProperties.Name="Show last recording in folder" />
+                <TextBlock x:Name="StatusText" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           Text="Ready. Click Record to begin."
+                           AutomationProperties.Name="Status message"
+                           AutomationProperties.LiveSetting="Polite" />
+            </DockPanel>
         </Grid>
-    </DockPanel>
+    </Border>
 </Window>

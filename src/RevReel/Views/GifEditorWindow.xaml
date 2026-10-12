@@ -134,22 +134,7 @@
                 <Button Content="_Full screen" Margin="8,0,0,0" Padding="12,6" Style="{StaticResource SecondaryButton}"
                         Click="FullScreen_Click"
                         AutomationProperties.HelpText="Go back to the whole picture." />
-                <TextBlock x:Name="CropText" Margin="12,0,18,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
-                <TextBlock Visibility="Collapsed" Text="Smoothness" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
-                <ComboBox x:Name="FpsBox" Visibility="Collapsed" Width="150" Margin="8,0,18,0" SelectedIndex="1"
-                          AutomationProperties.Name="GIF smoothness in frames per second">
-                    <ComboBoxItem Content="5 frames/s (small)" Tag="5" />
-                    <ComboBoxItem Content="10 frames/s" Tag="10" />
-                    <ComboBoxItem Content="15 frames/s (smooth)" Tag="15" />
-                </ComboBox>
-                <TextBlock Visibility="Collapsed" Text="Width" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
-                <ComboBox x:Name="WidthBox" Visibility="Collapsed" Width="150" Margin="8,0,0,0" SelectedIndex="2"
-                          AutomationProperties.Name="GIF width in pixels">
-                    <ComboBoxItem Content="480 px (small)" Tag="480" />
-                    <ComboBoxItem Content="640 px" Tag="640" />
-                    <ComboBoxItem Content="800 px" Tag="800" />
-                    <ComboBoxItem Content="960 px (large)" Tag="960" />
-                </ComboBox>
+                <TextBlock x:Name="CropText" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
             </WrapPanel>
 
             <!-- Text on the GIF -->
@@ -174,7 +159,7 @@
                             AutomationProperties.Name="How the GIF plays">
                     <RadioButton x:Name="LoopRadio" GroupName="GifPlay" Content="_Loop (plays again and again)" IsChecked="True"
                                  Foreground="{StaticResource TextBrush}" />
-                    <RadioButton x:Name="PlayOnceRadio" GroupName="GifPlay" Content="Play _once (then stops)" Margin="0,4,0,0"
+                    <RadioButton GroupName="GifPlay" Content="Play _once (then stops)" Margin="0,4,0,0"
                                  Foreground="{StaticResource TextBrush}" />
                 </StackPanel>
                 <Button x:Name="TrimButton" Content="Save trimmed _video (MP4)" Margin="0,0,10,0" Padding="16,10"

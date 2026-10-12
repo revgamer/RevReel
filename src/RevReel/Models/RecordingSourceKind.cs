@@ -10,6 +10,9 @@ namespace RevReel.Models
         AllMonitors,
 
         /// <summary>A rectangle the user dragged out on one monitor.</summary>
-        Area
+        Area,
+
+        /// <summary>One open program window.</summary>
+        Window
     }
 }

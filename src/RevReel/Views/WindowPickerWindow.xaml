@@ -1,0 +1,40 @@
+<Window x:Class="RevReel.Views.WindowPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Choose a window to record - RevReel" Width="560" Height="480" MinWidth="420" MinHeight="340"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BackgroundBrush}">
+
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Choose a window to record" FontSize="20" FontWeight="SemiBold"
+                   Foreground="{StaticResource TextBrush}" />
+        <TextBlock Grid.Row="1" Margin="0,6,0,12" TextWrapping="Wrap" FontSize="13"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   Text="Use the Up and Down arrow keys, then press Enter. Or double-click a window. Minimised windows are not listed, so bring the window back first, then click Refresh." />
+
+        <Grid Grid.Row="2">
+            <ListBox x:Name="WindowList" DisplayMemberPath="DisplayText" FontSize="14"
+                     Background="{StaticResource PanelBrush}" Foreground="{StaticResource TextBrush}"
+                     BorderBrush="{StaticResource SecondaryBrush}"
+                     MouseDoubleClick="WindowList_MouseDoubleClick"
+                     AutomationProperties.Name="Open windows" />
+            <TextBlock x:Name="EmptyText" Visibility="Collapsed" TextWrapping="Wrap" TextAlignment="Center"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="320"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Text="No open windows were found. Open the program, then click Refresh." />
+        </Grid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="_Refresh" Padding="16,8" Style="{StaticResource SecondaryButton}" Click="Refresh_Click" />
+            <Button Content="Cancel" Margin="10,0,0,0" Padding="16,8" Style="{StaticResource SecondaryButton}" IsCancel="True" />
+            <Button Content="Select" Margin="10,0,0,0" Padding="22,8" Style="{StaticResource PrimaryButton}"
+                    IsDefault="True" Click="Select_Click" />
+        </StackPanel>
+    </Grid>
+</Window>

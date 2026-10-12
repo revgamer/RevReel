@@ -2,11 +2,9 @@
 
 RevReel — a simple Windows screen recorder with bookmarks and instant replay GIFs. By Rev Creative Developer.
 
-> Status: early development (v0.1.0). Records the whole primary screen to MP4.
-> Start and stop with the buttons (Alt+R to record, Alt+S to stop).
-> Menu bar: File (open save location, play/show last recording, exit),
-> Option (save folder, frame rate, output size, keep on top),
-> Help (About, check for updates, keyboard shortcuts, GitHub, report a problem).
+> Status: early development (v0.1.0). Compact toolbar: **Whole Screen**, **A Window**,
+> **Custom Area**, **Record**, **Screenshot** and **GIF Maker**.
+> The menu button (three lines, top right) opens File, Option and Help.
 
 ## Planned features
 
@@ -75,16 +73,32 @@ words (no sound), and the pop-up is hidden from the recording.
 
 Third-party: Openize.Animated-GIF (Apache-2.0), System.Drawing.Common (MIT).
 
-## Record source (monitors and areas)
+## The toolbar (what to record)
 
-**Option > Record source** chooses what the next recording captures:
+The three buttons on the left choose what the next recording and screenshot capture.
+The chosen one has an orange outline, and the line under the buttons says it in words
+("Recording: Whole screen (...)").
 
-- **Monitor 1, Monitor 2, ...** - one monitor. The list is read when you open the menu, so plugged-in or unplugged monitors are picked up. If the chosen monitor is missing, the main one is recorded and the status line says so.
-- **All monitors (one wide video)** - every monitor together in one video (shown only with 2 or more monitors).
-- **Select an area...** - every monitor is dimmed. Drag a box on any monitor (or use the arrow keys: arrows move, Shift + arrows resize), then press Enter or "Use this area". The area stays inside one monitor. While recording, a red outline marks the area; it is hidden from the video.
+- **Whole Screen** - records a whole monitor. With more than one monitor a small menu opens so you pick which one (or **All monitors**, one wide video). If the chosen monitor is missing, the main one is used and the line says so.
+- **A Window** - a list of open windows opens (arrow keys + Enter, or double-click). Only that window is recorded. If it is closed later, the main monitor is recorded instead and the line says so. Minimised windows are not listed.
+- **Custom Area** - every monitor is dimmed. Drag a box on any monitor (or use the arrow keys: arrows move, Shift + arrows resize), then press Enter or "Use this area". While recording, a red outline marks the area; it is hidden from the video.
+
+**Record** starts recording and becomes **Stop** while recording. **Screenshot** saves a PNG
+(`RevReel_screenshot_<date>.png`) of exactly what would be recorded. **GIF Maker** opens a finished recording.
+The same choices are in **Option > Record source**.
+
+| Keys (work in games and when RevReel is not in front) | Result |
+| --- | --- |
+| Ctrl+Alt+F10 | Start or stop recording |
+| Ctrl+Alt+F9 | Screenshot |
+| Ctrl+Alt+F8 | Bookmark (while recording) |
+
+Alt shortcuts inside RevReel: Alt+W whole screen, Alt+N window, Alt+A area, Alt+R record/stop,
+Alt+C screenshot, Alt+G GIF Maker, Alt+L show last file.
 
 Pop-up messages (such as "GIF saved") appear on the monitor being recorded.
-The source cannot be changed while recording. The chosen area is remembered until RevReel closes.
+The source cannot be changed while recording. The chosen area and window are remembered until RevReel closes.
+RevReel's own window is hidden from recordings and screenshots.
 
 ## Bookmarks and the GIF maker
 

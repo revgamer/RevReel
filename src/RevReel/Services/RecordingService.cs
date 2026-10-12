@@ -246,7 +246,11 @@ namespace RevReel.Services
         {
             var sources = new List<RecordingSourceBase>();
 
-            if (target.Kind == RecordingSourceKind.Area && target.Area != null)
+            if (target.Kind == RecordingSourceKind.Window && target.Window != null)
+            {
+                sources.Add(new WindowRecordingSource(target.Window.Handle));
+            }
+            else if (target.Kind == RecordingSourceKind.Area && target.Area != null)
             {
                 AreaSelection area = target.Area;
                 sources.Add(new DisplayRecordingSource(area.DeviceName)

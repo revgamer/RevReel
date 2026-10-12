@@ -13,7 +13,6 @@ namespace RevReel.Views
         private const int WS_EX_TRANSPARENT = 0x00000020;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private const int WS_EX_NOACTIVATE = 0x08000000;
-        private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
         [DllImport("user32.dll")]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -30,8 +29,6 @@ namespace RevReel.Views
 
         private MonitorInfo? _monitor;
 
-        [DllImport("user32.dll")]
-        private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
         public ToastWindow()
         {
@@ -45,7 +42,7 @@ namespace RevReel.Views
 
             // Hidden from screen capture, so the pop-up is not in the video.
             // Needs Windows 10 version 2004 or newer; on older versions it is simply not hidden.
-            SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+            CaptureVisibility.ExcludeFromCapture(hwnd);
 
             SizeChanged += (_, _) => PlaceInCorner();
             Loaded += (_, _) => PlaceInCorner();

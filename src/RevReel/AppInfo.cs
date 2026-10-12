@@ -13,7 +13,7 @@ namespace RevReel
         public const string Name = "RevReel";
         public const string Company = "Rev Creative Developer";
         public const string ReleaseDateText = "12 October 2026";
-        public const string Copyright = "Copyright © 2026 Rev Creative Developer";
+        public const string Copyright = "Copyright © 2026 RevGamer (Rev Creative Developer)";
         public const string LicenseName = "MIT License";
 
         public const string RepositoryUrl = "https://github.com/revgamer/RevReel";
