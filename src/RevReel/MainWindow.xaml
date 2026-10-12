@@ -1,62 +1,130 @@
 <Window x:Class="RevReel.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RevReel" Width="440" Height="300"
+        Title="RevReel" Width="460" Height="410"
         ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}">
 
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <DockPanel>
 
-        <!-- Title -->
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="RevReel" FontSize="26" FontWeight="Bold"
-                       Foreground="{StaticResource TextBrush}" />
-            <TextBlock Text="by Rev Creative Developer" FontSize="11"
-                       Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0" />
-        </StackPanel>
+        <!-- Menu bar. Alt+F, Alt+O and Alt+H open the menus. -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem x:Name="MenuOpenLocation" Header="_Open save location"
+                          InputGestureText="Ctrl+O" Click="MenuOpenLocation_Click" />
+                <MenuItem x:Name="MenuPlayLast" Header="_Play last recording"
+                          IsEnabled="False" Click="MenuPlayLast_Click" />
+                <MenuItem x:Name="MenuShowLast" Header="_Show last recording in folder"
+                          IsEnabled="False" Click="OpenFolderButton_Click" />
+                <Separator />
+                <MenuItem Header="E_xit" InputGestureText="Alt+F4" Click="MenuExit_Click" />
+            </MenuItem>
 
-        <!-- State and timer. State is always written out in words, never colour only. -->
-        <Border Grid.Row="1" Margin="0,18,0,0" Padding="14,10" CornerRadius="8"
-                Background="{StaticResource PanelBrush}">
-            <Grid>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse x:Name="IndicatorDot" Width="12" Height="12"
-                             Fill="{StaticResource MutedTextBrush}" Margin="0,0,10,0" />
-                    <TextBlock x:Name="StateText" Text="Not recording" FontSize="14"
-                               Foreground="{StaticResource TextBrush}"
-                               AutomationProperties.Name="Recording state" />
-                </StackPanel>
-                <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="20" FontWeight="SemiBold"
-                           FontFamily="Consolas" HorizontalAlignment="Right"
-                           Foreground="{StaticResource TextBrush}"
-                           AutomationProperties.Name="Elapsed time" />
-            </Grid>
+            <MenuItem Header="_Option">
+                <MenuItem x:Name="MenuChangeFolder" Header="Change _save location..."
+                          Click="MenuChangeFolder_Click" />
+                <MenuItem x:Name="MenuFrameRate" Header="_Frame rate">
+                    <MenuItem Header="_30 frames per second" Tag="30" IsCheckable="True"
+                              Click="MenuFrameRate_Click" />
+                    <MenuItem Header="_60 frames per second" Tag="60" IsCheckable="True"
+                              Click="MenuFrameRate_Click" />
+                </MenuItem>
+                <MenuItem x:Name="MenuOutputSize" Header="_Output size">
+                    <MenuItem Header="_Automatic (same as the screen)" Tag="Automatic" IsCheckable="True"
+                              Click="MenuOutputSize_Click" />
+                    <MenuItem Header="_720p (1280 x 720)" Tag="Hd720" IsCheckable="True"
+                              Click="MenuOutputSize_Click" />
+                    <MenuItem Header="_1080p (1920 x 1080)" Tag="FullHd1080" IsCheckable="True"
+                              Click="MenuOutputSize_Click" />
+                    <MenuItem Header="1_440p (2560 x 1440)" Tag="Qhd1440" IsCheckable="True"
+                              Click="MenuOutputSize_Click" />
+                    <MenuItem Header="_4K (3840 x 2160)" Tag="Uhd2160" IsCheckable="True"
+                              Click="MenuOutputSize_Click" />
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="MenuAlwaysOnTop" Header="Keep window on _top" IsCheckable="True"
+                          Click="MenuAlwaysOnTop_Click" />
+            </MenuItem>
+
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About RevReel..." Click="MenuAbout_Click" />
+                <MenuItem Header="_Check for updates..." Click="MenuCheckUpdates_Click" />
+                <MenuItem Header="_Keyboard shortcuts" InputGestureText="F1" Click="MenuShortcuts_Click" />
+                <Separator />
+                <MenuItem Header="RevReel on _GitHub" Click="MenuGitHub_Click" />
+                <MenuItem Header="_Report a problem" Click="MenuReportProblem_Click" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Update banner: shown only when a newer version has been found. -->
+        <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Visibility="Collapsed"
+                Background="{StaticResource AccentBrush}" Padding="14,8">
+            <DockPanel>
+                <Button Content="Dismiss" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                        Padding="10,4" Margin="8,0,0,0" Click="UpdateDismissButton_Click"
+                        AutomationProperties.Name="Dismiss the update notice" />
+                <Button Content="Download" DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                        Padding="10,4" Click="UpdateDownloadButton_Click"
+                        AutomationProperties.Name="Open the download page" />
+                <TextBlock x:Name="UpdateBannerText" Foreground="White" FontSize="12"
+                           VerticalAlignment="Center" TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite" />
+            </DockPanel>
         </Border>
 
-        <!-- Buttons. Alt+R, Alt+S and Alt+O work as keyboard shortcuts. -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
-            <Button x:Name="RecordButton" Content="_Record" Style="{StaticResource PrimaryButton}"
-                    Click="RecordButton_Click" AutomationProperties.Name="Start recording" />
-            <Button x:Name="StopButton" Content="_Stop" Style="{StaticResource SecondaryButton}"
-                    Margin="10,0,0,0" IsEnabled="False"
-                    Click="StopButton_Click" AutomationProperties.Name="Stop recording" />
-            <Button x:Name="OpenFolderButton" Content="_Open file" Style="{StaticResource SecondaryButton}"
-                    Margin="10,0,0,0" IsEnabled="False"
-                    Click="OpenFolderButton_Click" AutomationProperties.Name="Show last recording in folder" />
-        </StackPanel>
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- Status line: every message the app shows is written here. -->
-        <TextBlock x:Name="StatusText" Grid.Row="3" Margin="0,16,0,0" TextWrapping="Wrap"
-                   FontSize="12" Foreground="{StaticResource MutedTextBrush}"
-                   Text="Ready. Records the whole primary screen."
-                   AutomationProperties.Name="Status message"
-                   AutomationProperties.LiveSetting="Polite" />
-    </Grid>
+            <!-- Title -->
+            <StackPanel Grid.Row="0">
+                <TextBlock Text="RevReel" FontSize="26" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBlock Text="by Rev Creative Developer" FontSize="11"
+                           Foreground="{StaticResource MutedTextBrush}" Margin="0,2,0,0" />
+            </StackPanel>
+
+            <!-- State and timer. State is always written out in words, never colour only. -->
+            <Border Grid.Row="1" Margin="0,18,0,0" Padding="14,10" CornerRadius="8"
+                    Background="{StaticResource PanelBrush}">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="IndicatorDot" Width="12" Height="12"
+                                 Fill="{StaticResource MutedTextBrush}" Margin="0,0,10,0" />
+                        <TextBlock x:Name="StateText" Text="Not recording" FontSize="14"
+                                   Foreground="{StaticResource TextBrush}"
+                                   AutomationProperties.Name="Recording state" />
+                    </StackPanel>
+                    <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="20" FontWeight="SemiBold"
+                               FontFamily="Consolas" HorizontalAlignment="Right"
+                               Foreground="{StaticResource TextBrush}"
+                               AutomationProperties.Name="Elapsed time" />
+                </Grid>
+            </Border>
+
+            <!-- Buttons. Alt+R, Alt+S and Alt+W work as keyboard shortcuts. -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
+                <Button x:Name="RecordButton" Content="_Record" Style="{StaticResource PrimaryButton}"
+                        Click="RecordButton_Click" AutomationProperties.Name="Start recording" />
+                <Button x:Name="StopButton" Content="_Stop" Style="{StaticResource SecondaryButton}"
+                        Margin="10,0,0,0" IsEnabled="False"
+                        Click="StopButton_Click" AutomationProperties.Name="Stop recording" />
+                <Button x:Name="OpenFolderButton" Content="Sho_w file" Style="{StaticResource SecondaryButton}"
+                        Margin="10,0,0,0" IsEnabled="False"
+                        Click="OpenFolderButton_Click" AutomationProperties.Name="Show last recording in folder" />
+            </StackPanel>
+
+            <!-- Status line: every message the app shows is written here. -->
+            <TextBlock x:Name="StatusText" Grid.Row="3" Margin="0,16,0,0" TextWrapping="Wrap"
+                       FontSize="12" Foreground="{StaticResource MutedTextBrush}"
+                       Text="Ready. Records the whole primary screen."
+                       AutomationProperties.Name="Status message"
+                       AutomationProperties.LiveSetting="Polite" />
+        </Grid>
+    </DockPanel>
 </Window>

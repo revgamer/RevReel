@@ -4,6 +4,9 @@ RevReel — a simple Windows screen recorder with bookmarks and instant replay G
 
 > Status: early development (v0.1.0). Records the whole primary screen to MP4.
 > Start and stop with the buttons (Alt+R to record, Alt+S to stop).
+> Menu bar: File (open save location, play/show last recording, exit),
+> Option (save folder, frame rate, output size, keep on top),
+> Help (About, check for updates, keyboard shortcuts, GitHub, report a problem).
 
 ## Planned features
 
@@ -27,7 +30,9 @@ dotnet build RevReel.sln -c Debug -p:Platform=x64
 dotnet run --project src\RevReel\RevReel.csproj -c Debug -p:Platform=x64
 ```
 
-Recordings are saved to `Videos\RevReel`.
+Recordings are saved to `Videos\RevReel` by default (change it in Option). Settings are stored in `%AppData%\RevReel\settings.json`.
+
+The update check reads the latest GitHub Release. Tag releases like `v0.2.0`.
 
 ## Project layout
 
