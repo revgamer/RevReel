@@ -20,11 +20,16 @@ namespace RevReel
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
         private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromHours(6) };
         private readonly Stopwatch _stopwatch = new();
+        private readonly HotkeyService _hotkeys = new();
+        private readonly ToastService _toast = new();
 
         private AppSettings _settings = SettingsService.Load();
         private string? _lastFile;
         private string? _updateUrl;
         private bool _closeAfterStop;
+        private readonly List<double> _bookmarks = new(); // bookmark times (seconds) in the current recording
+        private AreaSelection? _area;          // chosen with Option > Record source > Select an area (kept until RevReel closes)
+        private AreaBorderWindow? _areaBorder; // red outline shown while an area is being recorded
 
         public MainWindow()
         {
@@ -38,12 +43,38 @@ namespace RevReel
 
             _timer.Tick += (_, _) => UpdateTimer();
 
+            // An area is only kept while RevReel is open, so start on the main monitor.
+            if (_settings.SourceKind == RecordingSourceKind.Area)
+            {
+                _settings.SourceKind = RecordingSourceKind.Monitor;
+            }
+
+            RebuildSourceMenu();
             Topmost = _settings.AlwaysOnTop;
             UpdateMenuChecks();
             PreviewKeyDown += Window_PreviewKeyDown;
 
             // Update check: once at start-up (quietly, in the background), then every 6 hours.
             _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync(manual: false);
+            // Global keys for replay GIFs (work while a game has the focus).
+            // They are only switched on while recording.
+            SourceInitialized += (_, _) =>
+            {
+                _hotkeys.Attach(this);
+                _hotkeys.Add(ModifierKeys.Control | ModifierKeys.Alt, Key.F8, "Ctrl+Alt+F8", AddBookmark);
+                _hotkeys.Add(ModifierKeys.Control | ModifierKeys.Alt, Key.F5, "Ctrl+Alt+F5", () => _ = SaveReplayAsync(3));
+                _hotkeys.Add(ModifierKeys.Control | ModifierKeys.Alt, Key.F6, "Ctrl+Alt+F6", () => _ = SaveReplayAsync(5));
+                _hotkeys.Add(ModifierKeys.Control | ModifierKeys.Alt, Key.F7, "Ctrl+Alt+F7", () => _ = SaveReplayAsync(10));
+            };
+            Closed += (_, _) =>
+            {
+                _hotkeys.Dispose();
+                _toast.Close();
+                CloseAreaBorder();
+            };
+
+            ReplayBuffer.CleanOldFolders();
+
             Loaded += async (_, _) =>
             {
                 RecordButton.Focus();
@@ -58,7 +89,10 @@ namespace RevReel
 
         private void RecordButton_Click(object sender, RoutedEventArgs e)
         {
-            _recording.Start(_settings);
+            RecordingTarget target = RecordingTarget.Resolve(_settings, _area, MonitorService.GetAll(), out string? targetNote);
+            _toast.Monitor = target.ToastMonitor;
+            _bookmarks.Clear();
+            _recording.Start(_settings, target);
 
             if (_recording.State == RecordingState.Recording)
             {
@@ -66,7 +100,110 @@ namespace RevReel
                 _timer.Start();
                 UpdateTimer();
                 ShowState(isRecording: true);
+
+                if (target.Kind == RecordingSourceKind.Area && target.Area != null)
+                {
+                    _areaBorder = new AreaBorderWindow(target.Area);
+                    _areaBorder.Show();
+                }
+
+                EnableReplayKeys($"Recording {target.Description}." + (targetNote != null ? " " + targetNote : ""));
             }
+        }
+
+        private void EnableReplayKeys(string prefix)
+        {
+            // The keys are always switched on while recording (bookmark works even with replay GIFs off).
+            IReadOnlyList<string> failed = _hotkeys.RegisterAll();
+            string keys = "Bookmark: Ctrl+Alt+F8."
+                + (_recording.ReplayAvailable ? " Replay GIF: Ctrl+Alt+F5 = 3 s, F6 = 5 s, F7 = 10 s." : "");
+
+            SetStatus(failed.Count > 0
+                ? $"{prefix} These keys are used by another program: {string.Join(", ", failed)}. Use the File menu instead. {keys}"
+                : $"{prefix} {keys}");
+        }
+
+        /// <summary>Marks the current moment so it can be turned into a GIF after the recording.</summary>
+        private void AddBookmark()
+        {
+            string? file = _recording.CurrentFilePath;
+            if (_recording.State != RecordingState.Recording || file == null)
+            {
+                return;
+            }
+
+            TimeSpan at = _stopwatch.Elapsed;
+            _bookmarks.Add(at.TotalSeconds);
+            bool saved = BookmarkStore.Save(file, _bookmarks);
+
+            string time = at.ToString(@"hh\:mm\:ss");
+            string message = $"Bookmark {_bookmarks.Count} added at {time}";
+            SetStatus(saved ? message + "." : message + ", but the bookmark file could not be saved.");
+            _toast.Show(message, isError: !saved);
+        }
+
+        private void MenuBookmark_Click(object sender, RoutedEventArgs e) => AddBookmark();
+
+        // ---- GIF editor ----
+
+        private void MakeGif_Click(object sender, RoutedEventArgs e)
+        {
+            if (_recording.State != RecordingState.Idle)
+            {
+                SetStatus("Stop the recording first. The GIF maker works on a finished recording.");
+                return;
+            }
+
+            string initialFolder = Directory.Exists(_settings.OutputFolder)
+                ? _settings.OutputFolder
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Choose the recording to make a GIF from",
+                Filter = "Video (*.mp4)|*.mp4",
+                InitialDirectory = _lastFile != null ? System.IO.Path.GetDirectoryName(_lastFile) : initialFolder,
+                FileName = _lastFile != null ? System.IO.Path.GetFileName(_lastFile) : ""
+            };
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                new GifEditorWindow(dialog.FileName) { Owner = this }.ShowDialog();
+            }
+        }
+
+        private async Task SaveReplayAsync(int seconds)
+        {
+            try
+            {
+                SetStatus($"Making a GIF of the last {seconds} seconds...");
+                _toast.Show($"Making {seconds}-second GIF...");
+                string path = await _recording.SaveReplayGifAsync(seconds, _settings.OutputFolder);
+                _lastFile = path;
+                SetStatus($"GIF saved: {path}");
+                _toast.Show($"GIF saved ({seconds} s)");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Could not save the GIF: {ex.Message}");
+                _toast.Show("GIF not saved: " + ex.Message, isError: true);
+            }
+        }
+
+        private async void MenuReplay_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem item && item.Tag is string tag && int.TryParse(tag, out int seconds))
+            {
+                await SaveReplayAsync(seconds);
+            }
+        }
+
+        private void MenuReplayEnabled_Click(object sender, RoutedEventArgs e)
+        {
+            _settings.ReplayGifEnabled = MenuReplayEnabled.IsChecked;
+            PersistSettings(_settings.ReplayGifEnabled
+                ? "Replay GIFs are on. They apply to the next recording."
+                : "Replay GIFs are off.");
         }
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
@@ -81,6 +218,9 @@ namespace RevReel
                 return;
             }
 
+            _hotkeys.UnregisterAll();
+            CloseAreaBorder();
+            MenuReplay.IsEnabled = false;
             _timer.Stop();
             _stopwatch.Stop();
             StopButton.IsEnabled = false;
@@ -91,6 +231,7 @@ namespace RevReel
 
         private void OnCompleted(string filePath)
         {
+            CloseAreaBorder();
             _timer.Stop();
             _stopwatch.Stop();
             _lastFile = filePath;
@@ -98,12 +239,16 @@ namespace RevReel
             MenuShowLast.IsEnabled = true;
             MenuPlayLast.IsEnabled = true;
             ShowState(isRecording: false);
-            SetStatus($"Recording saved: {filePath}");
+            SetStatus(_bookmarks.Count > 0
+                ? $"Recording saved: {filePath}. {_bookmarks.Count} bookmark(s) saved. Click 'Make GIF...' to turn a moment into a GIF."
+                : $"Recording saved: {filePath}");
             CloseIfRequested();
         }
 
         private void OnFailed(string reason)
         {
+            _hotkeys.UnregisterAll();
+            CloseAreaBorder();
             _timer.Stop();
             _stopwatch.Stop();
             ShowState(isRecording: false);
@@ -226,6 +371,129 @@ namespace RevReel
         // Option menu
         // ---------------------------------------------------------------
 
+        // ---- Record source (monitor / all monitors / area) ----
+
+        private void MenuOption_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            // Only react to the Option menu itself, not its sub-menus.
+            if (ReferenceEquals(e.OriginalSource, MenuOption))
+            {
+                RebuildSourceMenu();
+            }
+        }
+
+        /// <summary>Lists the monitors connected right now, so plugging one in or out is picked up.</summary>
+        private void RebuildSourceMenu()
+        {
+            MenuSource.Items.Clear();
+            IReadOnlyList<MonitorInfo> monitors = MonitorService.GetAll();
+            RecordingTarget current = RecordingTarget.Resolve(_settings, _area, monitors, out string? sourceNote);
+            SourceText.Text = "Will record: " + current.Description + (sourceNote != null ? " - " + sourceNote : "");
+
+            foreach (MonitorInfo monitor in monitors)
+            {
+                MonitorInfo captured = monitor;
+                var item = new MenuItem
+                {
+                    Header = monitor.DisplayText.Replace("_", "__"),
+                    IsCheckable = true,
+                    IsChecked = current.Kind == RecordingSourceKind.Monitor && current.Monitors.Count == 1
+                                && current.Monitors[0].DeviceName == monitor.DeviceName
+                };
+                item.Click += (_, _) => ChooseMonitor(captured);
+                MenuSource.Items.Add(item);
+            }
+
+            if (monitors.Count > 1)
+            {
+                var all = new MenuItem
+                {
+                    Header = "_All monitors (one wide video)",
+                    IsCheckable = true,
+                    IsChecked = current.Kind == RecordingSourceKind.AllMonitors
+                };
+                all.Click += (_, _) => ChooseAllMonitors();
+                MenuSource.Items.Add(all);
+            }
+
+            MenuSource.Items.Add(new Separator());
+
+            var area = new MenuItem
+            {
+                Header = _area == null ? "Select an _area..." : $"Select an _area... (now: {_area.DisplayText})",
+                IsCheckable = true,
+                IsChecked = current.Kind == RecordingSourceKind.Area
+            };
+            area.Click += (_, _) => ChooseArea();
+            MenuSource.Items.Add(area);
+        }
+
+        private void ChooseMonitor(MonitorInfo monitor)
+        {
+            _settings.SourceKind = RecordingSourceKind.Monitor;
+            _settings.MonitorDeviceName = monitor.IsPrimary ? "" : monitor.DeviceName;
+            PersistSettings($"Recording source: {monitor.DisplayText}. It applies to the next recording.");
+            RebuildSourceMenu();
+        }
+
+        private void ChooseAllMonitors()
+        {
+            _settings.SourceKind = RecordingSourceKind.AllMonitors;
+            PersistSettings("Recording source: all monitors in one wide video. It applies to the next recording.");
+            RebuildSourceMenu();
+        }
+
+        private void AreaButton_Click(object sender, RoutedEventArgs e) => ChooseArea();
+
+        private bool _choosingArea;
+
+        private async void ChooseArea()
+        {
+            SetStatus("Choose an area: drag a box on any monitor, then press Enter or 'Use this area'. Esc cancels.");
+
+            if (_choosingArea)
+            {
+                return;
+            }
+
+            _choosingArea = true;
+
+            // Hide this window so it is not in the way of the area being chosen.
+            WindowState previous = WindowState;
+            Hide();
+            AreaSelection? chosen;
+            try
+            {
+                chosen = await AreaSelector.SelectAsync();
+            }
+            finally
+            {
+                Show();
+                WindowState = previous;
+                Activate();
+                _choosingArea = false;
+            }
+
+            if (chosen != null)
+            {
+                _area = chosen;
+                _settings.SourceKind = RecordingSourceKind.Area;
+                PersistSettings($"Recording source: area {chosen.DisplayText}. It applies to the next recording.");
+            }
+            else
+            {
+                SetStatus("No area chosen. The recording source has not changed.");
+            }
+
+            RebuildSourceMenu();
+        }
+
+        private void CloseAreaBorder()
+        {
+            _areaBorder?.Close();
+            _areaBorder = null;
+        }
+
         private void MenuChangeFolder_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new Microsoft.Win32.OpenFolderDialog
@@ -294,6 +562,7 @@ namespace RevReel
             }
 
             MenuAlwaysOnTop.IsChecked = _settings.AlwaysOnTop;
+            MenuReplayEnabled.IsChecked = _settings.ReplayGifEnabled;
         }
 
         // ---------------------------------------------------------------
@@ -323,6 +592,10 @@ namespace RevReel
                 "Alt+S\tStop recording\n" +
                 "Alt+W\tShow the last recording in its folder\n" +
                 "Ctrl+O\tOpen the save location\n" +
+                "Ctrl+Alt+F8\tAdd a bookmark (while recording, works in games)\n" +
+                "Ctrl+Alt+F5\tSave a GIF of the last 3 seconds (while recording, works in games)\n" +
+                "Ctrl+Alt+F6\tSave a GIF of the last 5 seconds\n" +
+                "Ctrl+Alt+F7\tSave a GIF of the last 10 seconds\n" +
                 "F1\tThis list\n" +
                 "Alt+F4\tExit (a running recording is saved first)\n\n" +
                 "Alt+F, Alt+O, Alt+H open the File, Option and Help menus.",
@@ -404,6 +677,13 @@ namespace RevReel
             MenuChangeFolder.IsEnabled = !isRecording;
             MenuFrameRate.IsEnabled = !isRecording;
             MenuOutputSize.IsEnabled = !isRecording;
+            MenuReplayEnabled.IsEnabled = !isRecording;
+            MenuSource.IsEnabled = !isRecording;
+            AreaButton.IsEnabled = !isRecording;
+            MakeGifButton.IsEnabled = !isRecording;
+            MenuMakeGif.IsEnabled = !isRecording;
+            MenuBookmark.IsEnabled = isRecording;
+            MenuReplay.IsEnabled = isRecording && _recording.ReplayAvailable;
 
             if (isRecording)
             {

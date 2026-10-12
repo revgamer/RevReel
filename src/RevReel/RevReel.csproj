@@ -20,12 +20,17 @@
     <AssemblyTitle>RevReel</AssemblyTitle>
     <Product>RevReel</Product>
     <Company>Rev Creative Developer</Company>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- MIT licensed. Screen capture and encoding engine. -->
     <PackageReference Include="ScreenRecorderLib" Version="7.0.1" />
+    <!-- Apache 2.0 licensed. Builds the replay GIF files. -->
+    <PackageReference Include="Openize.Animated-GIF" Version="25.5.0" />
+    <!-- MIT licensed. Loads and resizes the snapshot pictures for the GIF. -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
   </ItemGroup>
 
 </Project>

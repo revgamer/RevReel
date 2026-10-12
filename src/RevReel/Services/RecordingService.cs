@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using RevReel.Models;
+using System.Threading.Tasks;
 using ScreenRecorderLib;
 
 namespace RevReel.Services
@@ -35,10 +36,17 @@ namespace RevReel.Services
         private readonly object _lock = new();
         private Recorder? _recorder;
         private RecordingState _state = RecordingState.Idle;
+        private ReplayBuffer? _replay;
 
         public RecordingState State
         {
             get { lock (_lock) { return _state; } }
+        }
+
+        /// <summary>True when the current recording is keeping pictures for replay GIFs.</summary>
+        public bool ReplayAvailable
+        {
+            get { lock (_lock) { return _replay != null && _state == RecordingState.Recording; } }
         }
 
         /// <summary>Full path of the file being recorded, or null when idle.</summary>
@@ -59,7 +67,7 @@ namespace RevReel.Services
         /// each other. Does nothing if a recording is already running.
         /// Problems are reported through <see cref="Failed"/>.
         /// </summary>
-        public void Start(AppSettings settings)
+        public void Start(AppSettings settings, RecordingTarget target)
         {
             lock (_lock)
             {
@@ -91,14 +99,37 @@ namespace RevReel.Services
                     outputOptions.OutputFrameSize = new ScreenSize(fixedSize.Value.Width, fixedSize.Value.Height);
                 }
 
+                // Replay GIFs: small JPEG pictures go to a temporary folder while
+                // recording. If the folder cannot be made, recording still works,
+                // just without replay GIFs.
+                ReplayBuffer? replay = null;
+                if (settings.ReplayGifEnabled)
+                {
+                    try
+                    {
+                        replay = new ReplayBuffer();
+                    }
+                    catch (Exception)
+                    {
+                        replay = null;
+                        StatusMessage?.Invoke(this, "Replay GIFs are unavailable (no temporary folder). Recording continues without them.");
+                    }
+                }
+
                 var options = new RecorderOptions
                 {
+                    SnapshotOptions = replay == null
+                        ? null
+                        : new SnapshotOptions
+                        {
+                            SnapshotsWithVideo = true,
+                            SnapshotsIntervalMillis = ReplayBuffer.IntervalMillis,
+                            SnapshotFormat = ScreenRecorderLib.ImageFormat.JPEG,
+                            SnapshotsDirectory = replay.Folder
+                        },
                     SourceOptions = new SourceOptions
                     {
-                        RecordingSources = new List<RecordingSourceBase>
-                        {
-                            new DisplayRecordingSource(DisplayRecordingSource.MainMonitor)
-                        }
+                        RecordingSources = BuildSources(target)
                     },
                     OutputOptions = outputOptions,
                     AudioOptions = new AudioOptions
@@ -107,7 +138,7 @@ namespace RevReel.Services
                     },
                     VideoEncoderOptions = new VideoEncoderOptions
                     {
-                        Bitrate = ChooseBitrate(settings.Framerate, fixedSize),
+                        Bitrate = ChooseBitrate(settings.Framerate, fixedSize, target),
                         Framerate = settings.Framerate,
                         IsFixedFramerate = true,
                         IsHardwareEncodingEnabled = true,
@@ -122,7 +153,12 @@ namespace RevReel.Services
                 _recorder = Recorder.CreateRecorder(options);
                 _recorder.OnRecordingComplete += OnRecordingComplete;
                 _recorder.OnRecordingFailed += OnRecordingFailed;
+                if (replay != null)
+                {
+                    _recorder.OnSnapshotSaved += OnSnapshotSaved;
+                }
 
+                lock (_lock) { _replay = replay; }
                 CurrentFilePath = filePath;
                 _recorder.Record(filePath);
                 StatusMessage?.Invoke(this, $"Recording started. Saving to: {filePath}");
@@ -164,10 +200,80 @@ namespace RevReel.Services
             }
         }
 
-        private static int ChooseBitrate(int framerate, (int Width, int Height)? fixedSize)
+        /// <summary>
+        /// Saves a GIF of the last <paramref name="seconds"/> seconds of the
+        /// recording in progress. Returns the GIF's path. Throws
+        /// InvalidOperationException with a plain message if it cannot be done.
+        /// </summary>
+        public async Task<string> SaveReplayGifAsync(int seconds, string outputFolder)
         {
-            int width = fixedSize?.Width ?? GetSystemMetrics(SM_CXSCREEN);
-            int height = fixedSize?.Height ?? GetSystemMetrics(SM_CYSCREEN);
+            ReplayBuffer? replay;
+            lock (_lock)
+            {
+                replay = _state == RecordingState.Recording ? _replay : null;
+            }
+
+            if (replay == null)
+            {
+                throw new InvalidOperationException("Replay GIFs only work while recording, and need 'Enable replay GIFs' switched on.");
+            }
+
+            if (replay.IsBuilding)
+            {
+                throw new InvalidOperationException("A GIF is already being made. Wait for it to finish.");
+            }
+
+            string path = System.IO.Path.Combine(outputFolder, $"RevReel_replay_{seconds}s_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.gif");
+            await replay.SaveGifAsync(seconds, path);
+            return path;
+        }
+
+        private void OnSnapshotSaved(object? sender, SnapshotSavedEventArgs e)
+        {
+            ReplayBuffer? replay;
+            lock (_lock) { replay = _replay; }
+            if (replay != null && !string.IsNullOrEmpty(e.SnapshotPath))
+            {
+                replay.AddFrame(e.SnapshotPath);
+            }
+        }
+
+        /// <summary>
+        /// Turns the chosen target into ScreenRecorderLib sources: one per
+        /// monitor, or one monitor cropped to the chosen area.
+        /// </summary>
+        private static List<RecordingSourceBase> BuildSources(RecordingTarget target)
+        {
+            var sources = new List<RecordingSourceBase>();
+
+            if (target.Kind == RecordingSourceKind.Area && target.Area != null)
+            {
+                AreaSelection area = target.Area;
+                sources.Add(new DisplayRecordingSource(area.DeviceName)
+                {
+                    // X and Y are measured from that monitor's top-left corner.
+                    SourceRect = new ScreenRect(area.X, area.Y, area.Width, area.Height)
+                });
+            }
+            else if (target.Monitors.Count > 0)
+            {
+                foreach (MonitorInfo monitor in target.Monitors)
+                {
+                    sources.Add(new DisplayRecordingSource(monitor.DeviceName));
+                }
+            }
+            else
+            {
+                sources.Add(new DisplayRecordingSource(DisplayRecordingSource.MainMonitor));
+            }
+
+            return sources;
+        }
+
+        private static int ChooseBitrate(int framerate, (int Width, int Height)? fixedSize, RecordingTarget target)
+        {
+            int width = fixedSize?.Width ?? (target.Width > 0 ? target.Width : GetSystemMetrics(SM_CXSCREEN));
+            int height = fixedSize?.Height ?? (target.Height > 0 ? target.Height : GetSystemMetrics(SM_CYSCREEN));
             if (width <= 0 || height <= 0)
             {
                 return 8_000_000;
@@ -197,8 +303,12 @@ namespace RevReel.Services
                 {
                     _recorder.OnRecordingComplete -= OnRecordingComplete;
                     _recorder.OnRecordingFailed -= OnRecordingFailed;
+                    _recorder.OnSnapshotSaved -= OnSnapshotSaved;
                     _recorder = null;
                 }
+
+                _replay?.Release();
+                _replay = null;
 
                 CurrentFilePath = null;
                 _state = RecordingState.Idle;

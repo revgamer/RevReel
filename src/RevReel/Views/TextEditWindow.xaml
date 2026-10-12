@@ -1,0 +1,116 @@
+<Window x:Class="RevReel.Views.TextEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Text for the GIF - RevReel" Width="520" SizeToContent="Height"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BackgroundBrush}">
+
+    <StackPanel Margin="20">
+        <TextBlock Text="Text (press Enter for a new line)" Foreground="{StaticResource TextBrush}" />
+        <TextBox x:Name="WordsBox" Margin="0,6,0,0" Height="84" AcceptsReturn="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" FontSize="15" Padding="6,4"
+                 AutomationProperties.Name="Text to show on the GIF" />
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="130" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Font" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="FontBox" Margin="0,6,0,0" AutomationProperties.Name="Font">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="15" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Size (12 to 64)" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="SizeBox" Margin="0,6,0,0" IsEditable="True"
+                          AutomationProperties.Name="Size, from 12 to 64" />
+            </StackPanel>
+        </Grid>
+        <TextBlock x:Name="SizeHint" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{StaticResource MutedTextBrush}" />
+
+        <TextBlock Text="Colour" Margin="0,14,0,0" Foreground="{StaticResource TextBrush}" />
+        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <Border x:Name="ColorSwatch" Width="34" Height="34" BorderBrush="{StaticResource SecondaryBrush}" BorderThickness="1"
+                    AutomationProperties.Name="The chosen colour" />
+            <Button Content="Colour _picker..." Margin="10,0,0,0" Padding="16,7" Style="{StaticResource SecondaryButton}"
+                    Click="PickColor_Click"
+                    AutomationProperties.HelpText="Opens a colour field and hue bar. You can also type numbers." />
+            <TextBlock Text="Colour code" Margin="18,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+            <TextBox x:Name="HexBox" Width="90" Margin="8,0,0,0" FontFamily="Consolas" FontSize="14" Padding="4,3"
+                     MaxLength="7" AutomationProperties.Name="Colour code, for example FF8A00" />
+        </StackPanel>
+
+        <WrapPanel Margin="0,14,0,0">
+            <CheckBox x:Name="BoldBox" Content="_Bold" Margin="0,0,18,0" Foreground="{StaticResource TextBrush}" />
+            <CheckBox x:Name="ItalicBox" Content="_Italic" Margin="0,0,18,0" Foreground="{StaticResource TextBrush}" />
+            <CheckBox x:Name="UnderlineBox" Content="_Underline" Margin="0,0,18,0" Foreground="{StaticResource TextBrush}" />
+            <CheckBox x:Name="OutlineBox" Content="Dark _outline (easier to read)" Foreground="{StaticResource TextBrush}" />
+        </WrapPanel>
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="130" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Animation" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="AnimBox" Margin="0,6,0,0" AutomationProperties.Name="Animation">
+                    <ComboBoxItem Content="None" />
+                    <ComboBoxItem Content="Flash (blinks on and off)" />
+                    <ComboBoxItem Content="Fade in and out" />
+                    <ComboBoxItem Content="Shake" />
+                    <ComboBoxItem Content="Broken letters (glitch)" />
+                    <ComboBoxItem Content="Typewriter (letters appear one by one)" />
+                    <ComboBoxItem Content="Rainbow colours" />
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Speed" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="SpeedBox" Margin="0,6,0,0" AutomationProperties.Name="Animation speed">
+                    <ComboBoxItem Content="Slow" />
+                    <ComboBoxItem Content="Normal" />
+                    <ComboBoxItem Content="Fast" />
+                </ComboBox>
+            </StackPanel>
+        </Grid>
+        <TextBlock Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"
+                   Text="Animations play in the GIF. The preview picture in the GIF maker shows them too when you play the video or move the timeline." />
+
+        <CheckBox x:Name="AlwaysBox" Content="Show for the _whole GIF" Margin="0,16,0,0" Foreground="{StaticResource TextBrush}" />
+        <StackPanel x:Name="TimePanel" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="Show from" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+            <TextBox x:Name="FromBox" Width="100" Margin="8,0,0,0" FontFamily="Consolas" FontSize="14" Padding="4,3"
+                     AutomationProperties.Name="Show the text from this time, hours minutes seconds" />
+            <TextBlock Text="until" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+            <TextBox x:Name="ToBox" Width="100" Margin="8,0,0,0" FontFamily="Consolas" FontSize="14" Padding="4,3"
+                     AutomationProperties.Name="Hide the text at this time, hours minutes seconds" />
+        </StackPanel>
+        <TextBlock x:Name="TimeHint" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   Text="Times are the same as the timeline of the recording. The text appears at the first time and disappears at the second." />
+
+        <TextBlock Text="Look (animations play here)" Margin="0,16,0,6" Foreground="{StaticResource TextBrush}" />
+        <Border Background="#FF303030" CornerRadius="6" Padding="14,6" Height="130" ClipToBounds="True">
+            <Image x:Name="LookImage" HorizontalAlignment="Left" VerticalAlignment="Center" Stretch="Fill"
+                   AutomationProperties.Name="Preview of the text with its font, colour and animation" />
+        </Border>
+
+        <TextBlock x:Name="ErrorText" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="#FFFF8A80"
+                   AutomationProperties.LiveSetting="Assertive" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="OK" Padding="26,8" Style="{StaticResource PrimaryButton}" IsDefault="True" Click="Ok_Click" />
+            <Button Content="Cancel" Margin="10,0,0,0" Padding="20,8" Style="{StaticResource SecondaryButton}"
+                    IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

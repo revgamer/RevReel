@@ -55,3 +55,56 @@ Installer/     installer script (output is not committed)
 ## License
 
 MIT. See `LICENSE`.
+
+
+## Replay GIFs
+
+While recording, RevReel keeps the last few seconds as small pictures in a temporary folder
+and deletes older ones, so disk use stays small. Press a key to turn the last 3, 5 or 10
+seconds into a looping GIF saved in your save folder (`RevReel_replay_5s_<date>.gif`).
+
+| Keys (work while a game has the focus) | Result |
+| --- | --- |
+| Ctrl+Alt+F5 | GIF of the last 3 seconds |
+| Ctrl+Alt+F6 | GIF of the last 5 seconds |
+| Ctrl+Alt+F7 | GIF of the last 10 seconds |
+
+The same actions are in **File > Save replay GIF**. Switch the feature off in
+**Option > Enable replay GIFs**. A small pop-up in the top-right corner confirms each GIF in
+words (no sound), and the pop-up is hidden from the recording.
+
+Third-party: Openize.Animated-GIF (Apache-2.0), System.Drawing.Common (MIT).
+
+## Record source (monitors and areas)
+
+**Option > Record source** chooses what the next recording captures:
+
+- **Monitor 1, Monitor 2, ...** - one monitor. The list is read when you open the menu, so plugged-in or unplugged monitors are picked up. If the chosen monitor is missing, the main one is recorded and the status line says so.
+- **All monitors (one wide video)** - every monitor together in one video (shown only with 2 or more monitors).
+- **Select an area...** - every monitor is dimmed. Drag a box on any monitor (or use the arrow keys: arrows move, Shift + arrows resize), then press Enter or "Use this area". The area stays inside one monitor. While recording, a red outline marks the area; it is hidden from the video.
+
+Pop-up messages (such as "GIF saved") appear on the monitor being recorded.
+The source cannot be changed while recording. The chosen area is remembered until RevReel closes.
+
+## Bookmarks and the GIF maker
+
+For long sessions (for example a 3 hour game):
+
+1. Record as normal. When something funny or perfect happens, press **Ctrl+Alt+F8** (works while a game has the focus) or use **File > Add bookmark**. A pop-up says "Bookmark 3 added at 02:03:12". Bookmarks are saved next to the video in `<video>.mp4.bookmarks.json`, as soon as you add them.
+2. Stop the recording. The GIF maker works on a finished recording.
+3. Click **Make GIF...** (or **File > Make GIF from a recording...**) and pick the video. Bookmarks are listed on the left.
+4. Choose a bookmark (it starts 5 seconds before and ends 3 seconds after) or type your own start and end times. Drag the slider to see the picture at any moment, and use "Set start here" / "Set end here" to fine-tune.
+5. **Drag a box on the picture** to crop to just the part you want (for example only the dancing team). "Reset crop" removes it.
+6. Choose smoothness (frames per second) and width, then click **Make GIF**. The GIF is saved next to the video. A GIF can be up to 60 seconds long.
+
+The picture is read directly from the finished video, so no extra disk space is used while recording.
+
+### More in the GIF maker
+
+- **Play, Pause and Stop** play the recording in the preview. "Stop at the End time" pauses at your End time; Stop goes back to your Start time.
+- The **timeline** covers the whole recording. Arrow keys move 1 second, Page Up / Page Down 10 seconds, and "Back 1 s" / "Forward 1 s" step precisely.
+- **Add bookmark at the position** marks the moment shown in the preview (saved with the others). **Remove selected bookmark** deletes one.
+- **Crop:** drag a box on the picture, then click **Crop**. The preview zooms into that part, and the GIF uses only that part. Click **Full screen** to go back to the whole picture, then make another GIF or trim from the same moment.
+- **Text:** click **Add text...** to put words on the GIF. Choose the font, size (12 to 64), colour, bold, italic, underline and a dark outline. Each text can show for the whole GIF, or only from one time to another (for example 00:00:05 to 00:00:08). In the preview, a text that is not shown at the moment you are looking at is faded. **Colour picker...** opens a colour field and hue bar (with hue, saturation, brightness, red, green, blue and colour code boxes). **Animation** can make a text flash, fade in and out, shake, show broken (glitching) letters, type itself out letter by letter, or cycle through rainbow colours, at slow, normal or fast speed. Drag the text in the picture to move it, double-click it to change it, or use **Change text...** and **Remove text**. You can add several texts. Text is drawn into every frame of the GIF. It is not added to the trimmed MP4.
+- **Loop or play once:** next to **Make GIF**, choose **Loop** (the GIF plays again and again, the default) or **Play once** (it stops on the last frame).
+- **Save trimmed video (MP4)** saves only the part between Start and End as a new MP4 (whole picture, original size). The original recording is never changed.

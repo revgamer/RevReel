@@ -29,6 +29,10 @@
                    Foreground="{StaticResource TextBrush}" />
         <TextBlock Text="ScreenRecorderLib - MIT License" FontSize="12" Margin="0,2,0,0"
                    Foreground="{StaticResource MutedTextBrush}" />
+        <TextBlock Text="Openize.Animated-GIF - Apache License 2.0" FontSize="12" Margin="0,2,0,0"
+                   Foreground="{StaticResource MutedTextBrush}" />
+        <TextBlock Text="System.Drawing.Common - MIT License" FontSize="12" Margin="0,2,0,0"
+                   Foreground="{StaticResource MutedTextBrush}" />
 
         <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
             <Button Content="_GitHub" Style="{StaticResource SecondaryButton}" Padding="14,7"

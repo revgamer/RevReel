@@ -14,6 +14,18 @@ namespace RevReel.Models
 
         public bool AlwaysOnTop { get; set; } = false;
 
+        /// <summary>Which part of the screen(s) to record.</summary>
+        public RecordingSourceKind SourceKind { get; set; } = RecordingSourceKind.Monitor;
+
+        /// <summary>Windows device name of the chosen monitor (for example \\.\DISPLAY2). Empty = the main monitor.</summary>
+        public string MonitorDeviceName { get; set; } = "";
+
+        /// <summary>
+        /// Keeps a short rolling set of pictures while recording so replay
+        /// GIFs can be made. Uses some extra disk space and CPU.
+        /// </summary>
+        public bool ReplayGifEnabled { get; set; } = true;
+
         public static string DefaultOutputFolder =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "RevReel");
     }

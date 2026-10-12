@@ -1,0 +1,200 @@
+<Window x:Class="RevReel.Views.GifEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Make a GIF - RevReel" Width="1060" Height="850" MinWidth="880" MinHeight="730"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BackgroundBrush}">
+
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: which recording, and its bookmarks -->
+        <DockPanel Grid.Column="0" Margin="0,0,16,0">
+            <TextBlock x:Name="FileText" DockPanel.Dock="Top" TextWrapping="Wrap" FontSize="12"
+                       Foreground="{StaticResource MutedTextBrush}" />
+            <TextBlock DockPanel.Dock="Top" Text="Bookmarks" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextBrush}" Margin="0,14,0,6" />
+            <Button DockPanel.Dock="Bottom" Content="Open another recording..." Margin="0,10,0,0" Padding="10,8"
+                    Style="{StaticResource SecondaryButton}" Click="OpenOtherButton_Click" />
+            <Button x:Name="RemoveBookmarkButton" DockPanel.Dock="Bottom" Content="Remove selected bookmark"
+                    Margin="0,10,0,0" Padding="10,8" Style="{StaticResource SecondaryButton}"
+                    IsEnabled="False" Click="RemoveBookmark_Click" />
+            <Button x:Name="AddBookmarkButton" DockPanel.Dock="Bottom" Content="Add book_mark at the position"
+                    Margin="0,10,0,0" Padding="10,8" Style="{StaticResource SecondaryButton}"
+                    IsEnabled="False" Click="AddBookmark_Click"
+                    AutomationProperties.HelpText="Marks the moment shown in the preview, so you can come back to it later." />
+            <TextBlock x:Name="NoBookmarksText" DockPanel.Dock="Bottom" TextWrapping="Wrap" FontSize="12"
+                       Foreground="{StaticResource MutedTextBrush}" Margin="0,8,0,0" Visibility="Collapsed"
+                       Text="This recording has no bookmarks yet. Use the timeline to find a moment, then add a bookmark." />
+            <ListBox x:Name="BookmarkList" DisplayMemberPath="Text" FontSize="14"
+                     Background="{StaticResource PanelBrush}" Foreground="{StaticResource TextBrush}"
+                     BorderBrush="{StaticResource SecondaryBrush}"
+                     SelectionChanged="BookmarkList_SelectionChanged"
+                     AutomationProperties.Name="Bookmarks in this recording" />
+        </DockPanel>
+
+        <!-- Right -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Video preview. Drag on it to draw a box, then click Crop. -->
+            <Border Grid.Row="0" Background="Black" CornerRadius="6" MinHeight="220">
+                <Grid x:Name="PreviewHost" SizeChanged="PreviewHost_SizeChanged" ClipToBounds="True">
+                    <!-- A Canvas lets the player keep its full picture size. In a Grid,
+                         Windows would cut it down to the size of the preview box. -->
+                    <Canvas IsHitTestVisible="False">
+                        <MediaElement x:Name="Player" Canvas.Left="0" Canvas.Top="0"
+                                      LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                                      ScrubbingEnabled="True" Stretch="Fill" IsMuted="True"
+                                      MediaOpened="Player_MediaOpened" MediaFailed="Player_MediaFailed"
+                                      MediaEnded="Player_MediaEnded" />
+                    </Canvas>
+                    <Path x:Name="DimMask" Fill="#AA000000" IsHitTestVisible="False" />
+                    <Rectangle x:Name="SelectionRect" Stroke="{StaticResource AccentBrush}" StrokeThickness="3"
+                               Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top"
+                               IsHitTestVisible="False" />
+                    <Grid x:Name="CropHit" Background="#01000000" Cursor="Cross"
+                          MouseLeftButtonDown="CropHit_MouseLeftButtonDown"
+                          MouseMove="CropHit_MouseMove"
+                          MouseLeftButtonUp="CropHit_MouseLeftButtonUp" />
+                    <!-- Texts added to the GIF. Drag one to move it, double-click to change it. -->
+                    <Canvas x:Name="TextLayer" />
+                    <TextBlock x:Name="PreviewMessage" Foreground="{StaticResource MutedTextBrush}" FontSize="14"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                               TextWrapping="Wrap" Text="Opening the recording..." />
+                </Grid>
+            </Border>
+
+            <!-- Play, Pause, Stop -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="PlayButton" Content="_Play" Style="{StaticResource PrimaryButton}" Padding="18,7"
+                        IsEnabled="False" Click="PlayButton_Click"
+                        AutomationProperties.Name="Play the recording from the timeline position" />
+                <Button x:Name="PauseButton" Content="Pa_use" Margin="8,0,0,0" Style="{StaticResource SecondaryButton}"
+                        Padding="18,7" IsEnabled="False" Click="PauseButton_Click"
+                        AutomationProperties.Name="Pause the recording" />
+                <Button x:Name="StopButton" Content="S_top" Margin="8,0,0,0" Style="{StaticResource SecondaryButton}"
+                        Padding="18,7" IsEnabled="False" Click="StopButton_Click"
+                        AutomationProperties.Name="Stop and go back to the start time"
+                        AutomationProperties.HelpText="Goes back to the Start time." />
+                <CheckBox x:Name="StopAtEndBox" Content="Stop at the End time" IsChecked="True" Margin="18,0,0,0"
+                          VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <TextBlock x:Name="PlayStateText" Margin="18,0,0,0" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextBrush}" FontSize="13" Text="Stopped"
+                           AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+
+            <!-- Timeline -->
+            <DockPanel Grid.Row="2" Margin="0,10,0,0">
+                <TextBlock x:Name="PositionText" DockPanel.Dock="Right" Width="120" TextAlignment="Right"
+                           FontFamily="Consolas" FontSize="13" Foreground="{StaticResource TextBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Left" Text="Timeline" Margin="0,0,10,0" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextBrush}" />
+                <Button DockPanel.Dock="Left" Content="Back 1 s" Padding="8,4" Margin="0,0,6,0"
+                        Style="{StaticResource SecondaryButton}" Click="StepBack_Click" />
+                <Button DockPanel.Dock="Right" Content="Forward 1 s" Padding="8,4" Margin="6,0,8,0"
+                        Style="{StaticResource SecondaryButton}" Click="StepForward_Click" />
+                <Slider x:Name="PositionSlider" ValueChanged="PositionSlider_ValueChanged" IsMoveToPointEnabled="True"
+                        SmallChange="1" LargeChange="10" Minimum="0" Maximum="1"
+                        AutomationProperties.Name="Timeline of the whole recording. Arrow keys move one second, Page Up and Page Down move ten seconds." />
+            </DockPanel>
+
+            <!-- Start and end -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
+                <TextBlock Text="Start" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <TextBox x:Name="StartBox" Width="110" Margin="8,0,0,0" FontFamily="Consolas" FontSize="14" Padding="4,3"
+                         KeyDown="TimeBox_KeyDown" LostFocus="TimeBox_LostFocus"
+                         AutomationProperties.Name="Start time, hours minutes seconds" />
+                <Button Content="Set start _here" Margin="8,0,0,0" Padding="10,5" Style="{StaticResource SecondaryButton}"
+                        Click="SetStartHere_Click" />
+                <TextBlock Text="End" Margin="22,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <TextBox x:Name="EndBox" Width="110" Margin="8,0,0,0" FontFamily="Consolas" FontSize="14" Padding="4,3"
+                         KeyDown="TimeBox_KeyDown" LostFocus="TimeBox_LostFocus"
+                         AutomationProperties.Name="End time, hours minutes seconds" />
+                <Button Content="Set _end here" Margin="8,0,0,0" Padding="10,5" Style="{StaticResource SecondaryButton}"
+                        Click="SetEndHere_Click" />
+            </StackPanel>
+
+            <!-- Crop and GIF options -->
+            <WrapPanel Grid.Row="4" Margin="0,12,0,0">
+                <Button Content="_Crop" Padding="16,6" Style="{StaticResource PrimaryButton}" Click="Crop_Click"
+                        AutomationProperties.HelpText="Drag a box on the picture, then click Crop. The preview and the GIF then show only that part." />
+                <Button Content="_Full screen" Margin="8,0,0,0" Padding="12,6" Style="{StaticResource SecondaryButton}"
+                        Click="FullScreen_Click"
+                        AutomationProperties.HelpText="Go back to the whole picture." />
+                <TextBlock x:Name="CropText" Margin="12,0,18,0" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <TextBlock Visibility="Collapsed" Text="Smoothness" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="FpsBox" Visibility="Collapsed" Width="150" Margin="8,0,18,0" SelectedIndex="1"
+                          AutomationProperties.Name="GIF smoothness in frames per second">
+                    <ComboBoxItem Content="5 frames/s (small)" Tag="5" />
+                    <ComboBoxItem Content="10 frames/s" Tag="10" />
+                    <ComboBoxItem Content="15 frames/s (smooth)" Tag="15" />
+                </ComboBox>
+                <TextBlock Visibility="Collapsed" Text="Width" VerticalAlignment="Center" Foreground="{StaticResource TextBrush}" />
+                <ComboBox x:Name="WidthBox" Visibility="Collapsed" Width="150" Margin="8,0,0,0" SelectedIndex="2"
+                          AutomationProperties.Name="GIF width in pixels">
+                    <ComboBoxItem Content="480 px (small)" Tag="480" />
+                    <ComboBoxItem Content="640 px" Tag="640" />
+                    <ComboBoxItem Content="800 px" Tag="800" />
+                    <ComboBoxItem Content="960 px (large)" Tag="960" />
+                </ComboBox>
+            </WrapPanel>
+
+            <!-- Text on the GIF -->
+            <WrapPanel Grid.Row="5" Margin="0,12,0,0">
+                <Button x:Name="AddTextButton" Content="Add te_xt..." Padding="14,6" Style="{StaticResource SecondaryButton}"
+                        IsEnabled="False" Click="AddText_Click"
+                        AutomationProperties.HelpText="Adds words to the GIF. Choose the font, size, colour and style. Drag the text in the picture to move it." />
+                <Button x:Name="EditTextButton" Content="Change text..." Margin="8,0,0,0" Padding="14,6"
+                        Style="{StaticResource SecondaryButton}" IsEnabled="False" Click="EditText_Click"
+                        AutomationProperties.HelpText="Changes the selected text. You can also double-click a text in the picture." />
+                <Button x:Name="RemoveTextButton" Content="Remove text" Margin="8,0,0,0" Padding="14,6"
+                        Style="{StaticResource SecondaryButton}" IsEnabled="False" Click="RemoveText_Click" />
+                <TextBlock x:Name="TextInfoText" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13"
+                           Foreground="{StaticResource TextBrush}" AutomationProperties.LiveSetting="Polite" />
+            </WrapPanel>
+
+            <!-- Buttons -->
+            <WrapPanel Grid.Row="6" Margin="0,14,0,0">
+                <Button x:Name="MakeButton" Content="Make _GIF" Style="{StaticResource PrimaryButton}" Padding="22,10"
+                        Margin="0,0,10,0" IsEnabled="False" Click="MakeButton_Click" />
+                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center"
+                            AutomationProperties.Name="How the GIF plays">
+                    <RadioButton x:Name="LoopRadio" GroupName="GifPlay" Content="_Loop (plays again and again)" IsChecked="True"
+                                 Foreground="{StaticResource TextBrush}" />
+                    <RadioButton x:Name="PlayOnceRadio" GroupName="GifPlay" Content="Play _once (then stops)" Margin="0,4,0,0"
+                                 Foreground="{StaticResource TextBrush}" />
+                </StackPanel>
+                <Button x:Name="TrimButton" Content="Save trimmed _video (MP4)" Margin="0,0,10,0" Padding="16,10"
+                        Style="{StaticResource SecondaryButton}" IsEnabled="False" Click="TrimButton_Click"
+                        AutomationProperties.HelpText="Saves only the part between Start and End as a new MP4. The whole picture is kept. Your original recording is not changed." />
+                <Button x:Name="CancelBuildButton" Content="Stop _building" Margin="0,0,10,0" Padding="16,10"
+                        Style="{StaticResource SecondaryButton}" IsEnabled="False" Click="CancelBuildButton_Click" />
+                <Button x:Name="ShowGifButton" Content="Show file in folder" Margin="0,0,10,0" Padding="16,10"
+                        Style="{StaticResource SecondaryButton}" IsEnabled="False" Click="ShowGifButton_Click" />
+                <Button Content="Close" Padding="16,10" Style="{StaticResource SecondaryButton}"
+                        IsCancel="True" Click="CloseButton_Click" />
+            </WrapPanel>
+
+            <!-- Progress and status. Everything is written in words. -->
+            <StackPanel Grid.Row="7" Margin="0,12,0,0">
+                <ProgressBar x:Name="BuildProgress" Height="8" Minimum="0" Maximum="1" Visibility="Collapsed"
+                             AutomationProperties.Name="Progress" />
+                <TextBlock x:Name="StatusText" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="13"
+                           Foreground="{StaticResource TextBrush}" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

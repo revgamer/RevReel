@@ -1,7 +1,7 @@
 <Window x:Class="RevReel.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RevReel" Width="460" Height="410"
+        Title="RevReel" Width="460" Height="480"
         ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}">
@@ -17,11 +17,21 @@
                           IsEnabled="False" Click="MenuPlayLast_Click" />
                 <MenuItem x:Name="MenuShowLast" Header="_Show last recording in folder"
                           IsEnabled="False" Click="OpenFolderButton_Click" />
+                <MenuItem x:Name="MenuBookmark" Header="Add _bookmark" InputGestureText="Ctrl+Alt+F8"
+                          IsEnabled="False" Click="MenuBookmark_Click" />
+                <MenuItem x:Name="MenuMakeGif" Header="Make _GIF from a recording..."
+                          Click="MakeGif_Click" />
+                <MenuItem x:Name="MenuReplay" Header="Save _replay GIF" IsEnabled="False">
+                    <MenuItem Header="Last _3 seconds" Tag="3" InputGestureText="Ctrl+Alt+F5" Click="MenuReplay_Click" />
+                    <MenuItem Header="Last _5 seconds" Tag="5" InputGestureText="Ctrl+Alt+F6" Click="MenuReplay_Click" />
+                    <MenuItem Header="Last _10 seconds" Tag="10" InputGestureText="Ctrl+Alt+F7" Click="MenuReplay_Click" />
+                </MenuItem>
                 <Separator />
                 <MenuItem Header="E_xit" InputGestureText="Alt+F4" Click="MenuExit_Click" />
             </MenuItem>
 
-            <MenuItem Header="_Option">
+            <MenuItem x:Name="MenuOption" Header="_Option" SubmenuOpened="MenuOption_SubmenuOpened">
+                <MenuItem x:Name="MenuSource" Header="Record _source" />
                 <MenuItem x:Name="MenuChangeFolder" Header="Change _save location..."
                           Click="MenuChangeFolder_Click" />
                 <MenuItem x:Name="MenuFrameRate" Header="_Frame rate">
@@ -42,6 +52,8 @@
                     <MenuItem Header="_4K (3840 x 2160)" Tag="Uhd2160" IsCheckable="True"
                               Click="MenuOutputSize_Click" />
                 </MenuItem>
+                <MenuItem x:Name="MenuReplayEnabled" Header="Enable _replay GIFs" IsCheckable="True"
+                          Click="MenuReplayEnabled_Click" />
                 <Separator />
                 <MenuItem x:Name="MenuAlwaysOnTop" Header="Keep window on _top" IsCheckable="True"
                           Click="MenuAlwaysOnTop_Click" />
@@ -75,6 +87,7 @@
 
         <Grid Margin="24">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -119,8 +132,25 @@
                         Click="OpenFolderButton_Click" AutomationProperties.Name="Show last recording in folder" />
             </StackPanel>
 
+            <!-- What will be recorded, and the button to drag out a custom area on any monitor. -->
+            <StackPanel Grid.Row="3" Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="AreaButton" Content="Select _area..." Style="{StaticResource SecondaryButton}"
+                            Click="AreaButton_Click"
+                            AutomationProperties.Name="Select a custom area to record"
+                            AutomationProperties.HelpText="Drag a box on any monitor. RevReel records only that box." />
+                    <Button x:Name="MakeGifButton" Content="Make _GIF..." Style="{StaticResource SecondaryButton}"
+                            Margin="10,0,0,0" Click="MakeGif_Click"
+                            AutomationProperties.Name="Make a GIF from a recording"
+                            AutomationProperties.HelpText="Pick a bookmark, trim, crop and turn it into a GIF." />
+                </StackPanel>
+                <TextBlock x:Name="SourceText" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextBrush}"
+                           AutomationProperties.Name="What will be recorded" />
+            </StackPanel>
+
             <!-- Status line: every message the app shows is written here. -->
-            <TextBlock x:Name="StatusText" Grid.Row="3" Margin="0,16,0,0" TextWrapping="Wrap"
+            <TextBlock x:Name="StatusText" Grid.Row="4" Margin="0,16,0,0" TextWrapping="Wrap"
                        FontSize="12" Foreground="{StaticResource MutedTextBrush}"
                        Text="Ready. Records the whole primary screen."
                        AutomationProperties.Name="Status message"
