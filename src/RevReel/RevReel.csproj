@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <RootNamespace>RevReel</RootNamespace>
+    <AssemblyName>RevReel</AssemblyName>
+
+    <!-- ScreenRecorderLib wraps native Windows components, so this
+         project is x64 only (never AnyCPU). -->
+    <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <AssemblyTitle>RevReel</AssemblyTitle>
+    <Product>RevReel</Product>
+    <Company>Rev Creative Developer</Company>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MIT licensed. Screen capture and encoding engine. -->
+    <PackageReference Include="ScreenRecorderLib" Version="7.0.1" />
+  </ItemGroup>
+
+</Project>

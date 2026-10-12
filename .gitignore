@@ -426,3 +426,10 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# RevReel test recordings and installer output
+Installer/Output/
+Recording_*
+Screenshot_*
+RevReel_*.mp4
+RevReel_*.gif
